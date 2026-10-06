@@ -9,8 +9,11 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -62,44 +65,54 @@ class ArchitectureTest {
     }
 
     /**
-     * Removes block and line comments, leaving code and string literals.
-     *
-     * <p>Deliberately crude and deliberately not a Java parser. It only has to be good enough that a
-     * javadoc sentence mentioning {@code JOptionPane} does not read as a call to it, and that a
-     * {@code "//} or {@code /*} inside a string literal is not mistaken for a comment — which matters
-     * more than it used to, now that {@code Presenter} holds every user-visible string in the project
-     * and is the most likely place for help text containing a URL or a path to appear.
-     *
-     * <p>String literals are tracked so their contents are never scanned for comment markers. What is
-     * still not handled: escapes inside a literal, so {@code "\\"} in a string ends the literal early.
-     * No file here contains one, and the failure mode is a scan that finds slightly too much rather
-     * than too little.
-     */
-    private static String stripComments(String java) {
+ * The file's code: comments removed, and the contents of string and char literals blanked.
+ *
+ * <p>Two jobs, both learned the hard way.
+ *
+ * <p>Comments, because {@link LinearSearch} quotes the {@code JOptionPane.CANCEL_OPTION} line it
+ * deleted and {@link JumpSearch} quotes the {@code StringTokenizer} NPE. A matcher that cannot tell
+ * documentation from code fails on the explanation of the fix.
+ *
+ * <p>Literals, because {@link #methodBody} counts braces to find a method's end, and a {@code "}"}
+ * inside a string closed the body early — silently making the recursion check pass on recursive code.
+ * That is a false negative in the one test guarding this task's central property, and it is one
+ * plausible menu string away from happening for real.
+ *
+ * <p>Blanking rather than deleting keeps every other offset honest, and newlines inside literals are
+ * preserved so the result still reads line by line. Not handled: {@code \\uXXXX} escapes, which Java
+ * processes before lexing; none appear here.
+ */
+private static String codeOnly(String java) {
         StringBuilder out = new StringBuilder(java.length());
         int i = 0;
         boolean inString = false;
+        boolean inChar = false;
         while (i < java.length()) {
             char c = java.charAt(i);
 
-            if (inString) {
-                out.append(c);
+            if (inString || inChar) {
                 if (c == '\\' && i + 1 < java.length()) {
-                    // Keep the escaped character with its backslash so the literal does not end here.
-                    out.append(java.charAt(i + 1));
+                    out.append("  ");
                     i += 2;
                     continue;
                 }
-                if (c == '"') {
+                boolean closes = (inString && c == '"') || (inChar && c == '\'');
+                out.append(c == '\n' ? '\n' : ' ');
+                if (closes) {
                     inString = false;
+                    inChar = false;
                 }
                 i++;
                 continue;
             }
 
-            if (c == '"') {
-                inString = true;
-                out.append(c);
+            if (c == '"' || c == '\'') {
+                if (c == '"') {
+                    inString = true;
+                } else {
+                    inChar = true;
+                }
+                out.append(' ');
                 i++;
                 continue;
             }
@@ -139,7 +152,7 @@ class ArchitectureTest {
     void noAlgorithmClassCallsJOptionPane() {
         List<String> offenders = new ArrayList<>();
         for (String name : ALGORITHMS) {
-            if (mentions(stripComments(source(name + ".java")), "JOptionPane")) {
+            if (mentions(codeOnly(source(name + ".java")), "JOptionPane")) {
                 offenders.add(name);
             }
         }
@@ -152,7 +165,7 @@ class ArchitectureTest {
     void noAlgorithmClassReferencesRunner() {
         List<String> offenders = new ArrayList<>();
         for (String name : ALGORITHMS) {
-            if (mentions(stripComments(source(name + ".java")), "Runner")) {
+            if (mentions(codeOnly(source(name + ".java")), "Runner")) {
                 offenders.add(name);
             }
         }
@@ -177,7 +190,7 @@ class ArchitectureTest {
     void noAlgorithmClassReferencesPresenter() {
         List<String> offenders = new ArrayList<>();
         for (String name : ALGORITHMS) {
-            if (mentions(stripComments(source(name + ".java")), "Presenter")) {
+            if (mentions(codeOnly(source(name + ".java")), "Presenter")) {
                 offenders.add(name);
             }
         }
@@ -197,7 +210,7 @@ class ArchitectureTest {
         List<String> users = new ArrayList<>();
         for (Path file : javaSources()) {
             String name = file.getFileName().toString();
-            if (mentions(stripComments(read(file)), "JOptionPane")) {
+            if (mentions(codeOnly(read(file)), "JOptionPane")) {
                 users.add(name);
             }
         }
@@ -308,6 +321,103 @@ class ArchitectureTest {
         }
         assertEquals(List.of(), offenders,
                 "these should be stateless namespaces, so no field may be non-final");
+    }
+
+    // ------------------------------------------------------------------
+    // Task 14: no loop in this app may advance by recursion
+    // ------------------------------------------------------------------
+
+    /**
+     * No menu or search loop may call itself.
+     *
+     * <p>The 2019 {@code Menu()} ended with an unconditional {@code Menu()} and also called itself
+     * from its {@code default} branch, so the enclosing {@code do/while}'s condition was dead: every
+     * path recursed deeper or called {@code System.exit}. Each menu click cost a stack frame, and a
+     * user navigating for a while grew the stack without bound.
+     *
+     * <p>Checked against source because this is not observable at runtime from outside. A recursive
+     * menu and a looping one behave identically to a user, produce identical transcripts, and differ
+     * only in stack depth — which is exactly the property a transcript assertion cannot see. The
+     * previous GUI tests would all have passed against the recursive version.
+     */
+    @Test
+    void noMenuOrSearchLoopCallsItself() {
+        String code = codeOnly(source("Runner.java"));
+        for (String name : List.of("Menu", "searchLinear", "searchJump", "askSearchKey")) {
+            String body = methodBody(code, name);
+
+            // Two ways this goes wrong, and both have happened here. A plain contains("Menu(") also matches
+            // Presenter.askMenu(. And a lookbehind of (?<![\w$]) alone fixes that but then
+            // matches Presenter.askSearchKey( inside askSearchKey. So: reject a preceding word
+            // character (a longer identifier such as askMenu) and reject a preceding dot (a call
+            // on some other object), while still catching an unqualified call and one qualified
+            // with this class.
+            Pattern selfCall = Pattern.compile(
+                    "(?<![\\w$.])" + Pattern.quote(name) + "\\s*\\("
+                            + "|(?<![\\w$])Runner\\s*\\.\\s*" + Pattern.quote(name) + "\\s*\\(");
+            assertFalse(selfCall.matcher(body).find(),
+                    name + "() calls itself; the menu must advance by looping, not by recursing"
+                            + "\nfound in: " + body.strip());
+        }
+    }
+
+    /**
+     * {@code Menu()} is private.
+     *
+     * <p>Once the search dialogs stopped calling back into it, {@code GUI()} was the only caller, and
+     * an entry point nobody outside the class can reach is easier to reason about. Verified by
+     * reflection rather than by reading the modifier, so a later {@code public} is a test failure.
+     */
+    @Test
+    void theMenuIsPrivate() {
+        Method menu;
+        try {
+            menu = Runner.class.getDeclaredMethod("Menu");
+        } catch (NoSuchMethodException e) {
+            fail("Runner no longer has a Menu() method", e);
+            throw new AssertionError("unreachable");
+        }
+        assertTrue(Modifier.isPrivate(menu.getModifiers()),
+                "Menu() is internal to GUI()'s flow and must not be callable from outside");
+    }
+
+    /**
+     * The body of {@code code}'s {@code name} method, by brace matching.
+     *
+     * <p>Safe only on text that has been through {@link #codeOnly}: literals are blanked there, so a
+     * {@code "}"} cannot close the body early.
+     *
+     * <p>Finds the <i>declaration</i> rather than the first mention of the name. A plain
+     * {@code indexOf} is wrong here because {@code GUI()} calls {@code Menu()} before {@code Menu()}
+     * is declared, and matching on a leading {@code "void "} is wrong in the other direction — it
+     * misses every method that returns something, which is how {@code askSearchKey} came to be
+     * reported "not found". A mention is a declaration only when a brace comes before the next
+     * semicolon; a call site is followed by a semicolon.
+     */
+    private static String methodBody(String code, String name) {
+        Matcher mentions = Pattern
+                .compile("(?<![\\w$])" + Pattern.quote(name) + "\\s*\\(")
+                .matcher(code);
+        while (mentions.find()) {
+            int i = mentions.end();
+            while (i < code.length() && code.charAt(i) != '{' && code.charAt(i) != ';') {
+                i++;
+            }
+            if (i < code.length() && code.charAt(i) == '{') {
+                int depth = 0;
+                for (int j = i; j < code.length(); j++) {
+                    char c = code.charAt(j);
+                    if (c == '{') {
+                        depth++;
+                    } else if (c == '}' && --depth == 0) {
+                        return code.substring(i + 1, j);
+                    }
+                }
+                fail("unbalanced braces in " + name + "()");
+            }
+        }
+        fail("no declaration of " + name + "() found in Runner.java");
+        throw new AssertionError("unreachable");
     }
 
     private static Class<?> load(String name) {

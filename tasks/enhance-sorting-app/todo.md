@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**13 of 22 code complete. 168 tests, 0 failures, 13 suites, verified by `mvn -q clean package`.
+**14 of 22 code complete. 171 tests, 0 failures, 13 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -24,7 +24,8 @@ Nothing pushed.**
 | 11 | Extract Linear Search | done — GUI-verified; **fixed a wrong behaviour** |
 | 12 | Extract Jump Search | done — GUI-verified; **option had never worked** |
 | 13 | One `Presenter` for all dialogs | done — enforced by `ArchitectureTest` |
-| 14-22 | Control flow and polish | open |
+| 14 | Recursive `Menu()` → loop | done — no loop advances by recursion |
+| 15-22 | Cleanup, layout and polish | open |
 
 **All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
 no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
@@ -34,6 +35,13 @@ fails the build if a second one appears — so the 2019 coupling cannot quietly 
 could not be tested without a display, because each class both computed and prompted. Splitting
 "build a dialog" (`Presenter`) from "decide what happens next" (`Runner`) is what leaves every
 algorithm reachable from a plain unit test.
+
+**Task 14 closed the last recursion, and moved the last `System.exit` out of control flow.** `Menu()`
+was the only remaining loop that advanced by nesting; its `do/while` condition was dead code, since
+the recursive call never returned. The app now separates "the loop is over" (`Menu` returns) from
+"end the process" (`main` exits) — a distinction worth keeping, because returning from `main` costs
+about 1.3s of AWT auto-shutdown versus 7ms for `System.exit`. The two queue demos still call
+`System.exit`; they are out of scope until Task 21.
 
 **All five sorts and both searches are now pure.** The sorts (bubble, insertion, selection, merge,
 quick) are verified against `Arrays.sort` and displayed through one helper; the searches are
@@ -1014,7 +1022,7 @@ source tree from `user.dir` and **fails loudly if Task 17 moves it**, rather tha
 
 ## Task 14: Replace the recursive `Menu()` with a loop
 
-**Status:** open
+**Status:** done — verified by `ArchitectureTest` (9 tests) + `GuiSessionTest` (19 tests)
 
 **Description:** `Runner.Menu()` calls itself unconditionally at the bottom of its `do/while`
 and again inside several `case` labels, so the loop condition is never reached — every path
@@ -1025,15 +1033,88 @@ own dialog loops and should be converted in the same pass.
 
 **Context:** `CODE_REVIEW.md §Correctness`
 
+**Part of this brief was already done in Task 13.** It says `LinearSearch.Searching` and
+`JumpSearch.JumpsearchGUI` "should be converted in the same pass" — they no longer exist in that
+form. Task 13 moved both dialogs into `Runner` as `searchLinear` and `searchJump`, and converted the
+recursion to a loop at the same time. So only `Menu()` remained, which is what this task did. Worth
+recording because the stale names make it look like more work than there was.
+
+**The brief's "behaviour for options 1-9 is unchanged, including cancel" and the plan's "Task 14 makes
+menu cancel a return" disagree.** Both were satisfied: `System.exit(0)` became `return`, and it is
+behaviour-preserving because `main` has nothing left to do once `Menu()` returns, so the JVM ends
+either way. Verified rather than assumed — see below.
+
+**The old loop condition was genuinely dead.** `do { ... Menu(); } while(!intOnly(input))` could only
+reach its condition if the trailing `Menu()` returned, and it never did: every path either recursed
+deeper or called `System.exit`. So removing the condition removed nothing live.
+
+**`default:` showed exactly one menu dialog before, and still does.** Worth checking rather than
+assuming, because the old code appeared to call `Menu()` twice — once in `default:` and once after
+the switch. Only one could ever have run, since the first never returned. The new code falls out of
+the switch and returns to the top of the loop, which is the same single dialog.
+
+**The `if(intOnly(input))` guard was kept deliberately.** Removing it would have de-nested the whole
+switch and rewritten ~160 lines of indentation for no behavioural gain. Keeping it means this task's
+`Runner.java` diff is 57 lines. A cleanup task (15 or 16) can flatten it if that is worth the churn.
+
 **Acceptance criteria:**
-- [ ] `Menu()` returns normally instead of recursing; no self-call remains in any menu or search loop
-- [ ] Behavior for options 1-9 is unchanged, including cancel and invalid input
-- [ ] Menu interactions no longer grow the call stack (verifiable by repeated navigation)
+- [x] `Menu()` returns normally instead of recursing; no self-call remains in any menu or search loop
+- [x] Behaviour for options 1-9 is unchanged, including cancel and invalid input
+- [x] Menu interactions no longer grow the call stack (verifiable by repeated navigation)
+
+**Independent review found three defects in the draft; all fixed.** Two were mine:
+
+- **`methodBody`'s brace matcher was fooled by a brace inside a string literal.** It counted every
+  `{`/`}` without skipping literals, so a menu string containing `"}"` truncated the body early — and
+  the recursion check then passed on recursive code. A false negative in the one test guarding this
+  task's central property, one plausible message away from happening for real. Literals are now
+  blanked by `codeOnly` before the matcher runs.
+- **Two false-positive shapes, both hit in practice.** `contains("Menu(")` matches
+  `Presenter.askMenu(`; and fixing that with a `(?<![\w$])` lookbehind then matched
+  `Presenter.askSearchKey(` inside `askSearchKey`. The check now rejects a preceding word character
+  *and* a preceding dot, while still catching an unqualified call and one qualified with `Runner`.
+- **`methodBody` matched on `"void " + name + "("`,** so it reported `askSearchKey` — which returns
+  `String` — as "not found". It now locates the declaration properly: a mention is a declaration only
+  when a brace comes before the next semicolon.
+
+**`return` is not equivalent to `System.exit`, and I was wrong to write that it was.** Measured, from
+the last dialog being answered to the shutdown hook firing: `System.exit` at **~7ms**, a bare
+`return` at **~1310ms**. Swing's AWT threads are non-daemon and wind down through an auto-shutdown
+timer. No window is visible during that gap, but the app takes over a second to disappear, which a
+user pressing Exit reads as a hang. The code now separates the two concerns: `Menu()` **returns** —
+which is the honest control-flow signal, and what the acceptance criterion asks for — and `main` calls
+`System.exit(0)` immediately after, so teardown is instant again.
+
+**A claim in the first draft of this entry was overstated and is corrected here.** I cited
+`cancellingAtTheMenuEndsTheSessionRatherThanLoopingForever` as evidence that the JVM ends without
+`System.exit` inside the menu. It proves the app stops re-prompting; it does **not** prove the
+process ends, because `GuiDriver` runs the app on a daemon thread and calls `System.exit` itself, so
+it would exit cleanly even if `Runner` looped forever. Nothing in the suite exercises "main returns
+and the JVM ends by itself" — that gap is now covered by `main` exiting explicitly.
 
 **Verification:**
-- [ ] Tests pass: `mvn -q test`
-- [ ] Build succeeds: `mvn -q clean package`
-- [ ] Manual check: navigate the menu 50+ times, including into searches and back — no degradation
+- [x] Tests pass: `mvn -q test -Dtest=ArchitectureTest` — 9 tests, 0 failures, 2 red first
+- [x] Tests pass: `mvn -q clean package` — 171 tests, 0 failures, 13 suites
+- [x] The "navigate 50+ times" manual check was **automated rather than left open**:
+      `repeatedNavigationInAndOutOfASearchDoesNotDegrade` drives 12 cycles of
+      menu → option 6 → cancel, then Exit, asserting every cycle returns to the menu.
+- [x] Stack growth itself is **not** proved by that test and cannot be — a hundred recursions would
+      not overflow a JVM stack. Recursion and looping are indistinguishable from a transcript, so
+      `noMenuOrSearchLoopCallsItself` checks the property against the source instead. Stated rather
+      than papered over, since a reader could otherwise assume the GUI test covers it.
+- [x] The recursion check was **mutation-tested, not just made green.** A `"}"` literal followed by a
+      real `Menu()` self-call was injected into the menu body; the check failed as it must. Before the
+      literal-aware scanner it would have passed on that mutant.
+- [ ] Manual: whether the app closes as promptly as it did in 2019. The ~7ms teardown is measured, but
+      only outside the suite — nothing in the tests would fail if AWT's auto-shutdown ever stopped
+      firing.
+
+**My own errors in this task, four of them, all the same species — an assertion wrong about the
+artifact rather than the artifact being wrong:**
+- `body.contains("Menu(")` reported the recursion as still present after it had been removed.
+- Then `(?<![\w$])` reported `askSearchKey` as recursive because of `Presenter.askSearchKey(`.
+- `methodBody` could not find `askSearchKey` at all, for being non-void.
+- The navigation test expected `cycles * 3` turns per cycle; each cycle is 2. The app was right.
 
 **Dependencies:** Task 13
 

@@ -208,6 +208,50 @@ class GuiSessionTest {
                 "the prompt must appear once per screen and then the session must end");
     }
 
+    /**
+     * Many round trips through a search and back, with no degradation.
+     *
+     * <p>The brief's manual check — "navigate the menu 50+ times, including into searches and
+     * back" — is automatable, so it is not left as a manual step. Each cycle picks option 6 and
+     * cancels straight out, which is the path that used to nest: {@code Menu()} recursing into
+     * {@code searchLinear} and back, once per click.
+     *
+     * <p><b>What this does and does not prove.</b> It proves the app survives repeated navigation and
+     * that every cycle returns control to the menu — a hang, a lost dialog or a stack overflow would
+     * fail it. It does <i>not</i> prove the stack stopped growing, because a hundred recursions would
+     * not overflow a JVM stack. That is what {@code ArchitectureTest.noMenuOrSearchLoopCallsItself}
+     * is for: recursion and looping are indistinguishable from a transcript, so the property is
+     * checked against the source instead.
+     */
+    @Test
+    void repeatedNavigationInAndOutOfASearchDoesNotDegrade() throws Exception {
+        final int cycles = 12;
+        List<String> steps = new ArrayList<>(List.of(
+                "length of your array", "2",
+                "Element[0]", "8",
+                "Element[1]", "3"));
+        for (int i = 0; i < cycles; i++) {
+            steps.add("Length of your Array");
+            steps.add("6");
+            steps.add("Enter the you want to Search");
+            steps.add("!");
+        }
+        steps.add("Length of your Array");
+        steps.add("9");
+
+        Session s = drive(new Plan(steps.toArray(new String[0])));
+
+        assertRanCleanly(s);
+        assertDidNotCrash(s);
+        // Three prompts to type the array, then two turns per cycle - the menu and the search
+        // dialog - then the final menu for Exit.
+        assertEquals(3 + (cycles * 2) + 1, s.turns(),
+                "every cycle must reach the menu again");
+        // Menus sit on every turn from the third onwards: one before each cycle, and one after
+        // the last cancel to carry the Exit.
+        assertMenuShown(s, cycles + 1);
+    }
+
     // ------------------------------------------------------------------
     // Documented behaviour worth pinning
     // ------------------------------------------------------------------

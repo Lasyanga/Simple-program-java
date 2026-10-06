@@ -93,7 +93,7 @@ Nothing can be compiled or run today, so every later task's verification depends
 
 ### Phase 3: Control flow and cleanup
 
-- Task 14 — Replace the recursive `Menu()` with a loop
+- Task 14 — Replace the recursive `Menu()` with a loop — **done**: no loop in the app advances by recursion, and the last `System.exit` is gone
 - Task 15 — Remove dead code and the triplicated validators
 - Task 16 — Fix typos and inconsistent naming
 
