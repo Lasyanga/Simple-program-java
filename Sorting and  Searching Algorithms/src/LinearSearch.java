@@ -21,6 +21,14 @@ public class LinearSearch {
 						position+
 						"\nEnter the you want to Search:"
 						,"Linear Search",1);
+				// Cancel makes showInputDialog return null. intOnly reports null as
+				// invalid rather than throwing, so without this check the condition
+				// below re-prompts forever and the user is trapped in this dialog.
+				// Going back to the menu is what the accidental NPE used to achieve.
+				if(input == null){
+					quiano.Menu();
+					return;
+				}
 			}while(!quiano.intOnly(input));
 			
 			int opt = Integer.parseInt(input);

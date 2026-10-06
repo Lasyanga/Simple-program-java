@@ -7,6 +7,9 @@ public class QueueJava {
    private int count;
    
    QueueJava(int size){
+       if(size < 1){
+           throw new IllegalArgumentException("Queue size must be at least 1, was "+size);
+       }
        arr = new int[size];
        capacity = size;
        front = 0;
@@ -25,7 +28,7 @@ public class QueueJava {
    public void enqueue(int item){
        if (isFull()){
            System.out.println("Overflow Program terminated.");
-           //System.exit(1);
+           return;
        }
        //insert
        System.out.println("Inserting "+item);
@@ -45,7 +48,7 @@ public class QueueJava {
      public void dequeue(){
          if (isEmpty()){
            System.out.println("Underflow Program terminated.");
-           //System.exit(1);
+           return;
        }
       System.out.println("Deleting "+arr[front]);
       front = (front+1)%capacity;
@@ -63,6 +66,10 @@ public class QueueJava {
     	
     	if(isInteger(input)){
     		len = Integer.parseInt(input);
+      if(len < 1){
+          System.out.println("The size of the queue must be at least 1.");
+          return;
+      }
     		
     		do{
         		System.out.println("The size of the queue is: "+len);
