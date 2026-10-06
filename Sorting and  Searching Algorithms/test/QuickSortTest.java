@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Tests for {@link Quicksort}, extracted into a pure static method.
+ * Tests for {@link QuickSort}, extracted into a pure static method.
  *
  * <p>Same five input shapes as the other four sort tests, so the extractions stay comparable.
  *
@@ -28,25 +28,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * original failed 38,264 times - roughly one input in five, and rising with length. Correcting
  * only the bounds was not enough: it overflowed the stack immediately, because the original
  * partition's inner scans are unbounded and do not guarantee progress. The partition itself had
- * to change. See {@link Quicksort} for the replacement.
+ * to change. See {@link QuickSort} for the replacement.
  *
  * <p>These tests therefore check the final result against {@link Arrays#sort} over many shapes
  * <i>and</i> fuzz it, because the bug only appeared on inputs small enough to read and large
  * enough to have a pivot landing badly. A handful of hand-written shapes would not have caught
  * it; see {@link #fuzzesAgainstTheReferenceSort()}.
  */
-class QuicksortTest {
+class QuickSortTest {
 
     @Test
     void sortsAnUnsortedArrayAscending() {
         assertArrayEquals(new int[]{1, 3, 5, 7, 9},
-                Quicksort.quickSort(new int[]{5, 3, 9, 1, 7}));
+                QuickSort.quickSort(new int[]{5, 3, 9, 1, 7}));
     }
 
     @Test
     void leavesTheArgumentUntouched() {
         int[] input = {5, 3, 9, 1, 7};
-        Quicksort.quickSort(input);
+        QuickSort.quickSort(input);
         assertArrayEquals(new int[]{5, 3, 9, 1, 7}, input,
                 "quickSort must not mutate its argument");
     }
@@ -54,42 +54,42 @@ class QuicksortTest {
     @Test
     void returnsAnArrayDistinctFromTheInput() {
         int[] input = {3, 1, 2};
-        assertNotSame(input, Quicksort.quickSort(input));
+        assertNotSame(input, QuickSort.quickSort(input));
     }
 
     @Test
     void handlesAnAlreadySortedArray() {
         assertArrayEquals(new int[]{1, 2, 3, 4},
-                Quicksort.quickSort(new int[]{1, 2, 3, 4}));
+                QuickSort.quickSort(new int[]{1, 2, 3, 4}));
     }
 
     @Test
     void handlesASingleElement() {
-        assertArrayEquals(new int[]{42}, Quicksort.quickSort(new int[]{42}));
+        assertArrayEquals(new int[]{42}, QuickSort.quickSort(new int[]{42}));
     }
 
     @Test
     void handlesAnEmptyArray() {
-        assertArrayEquals(new int[]{}, Quicksort.quickSort(new int[]{}));
+        assertArrayEquals(new int[]{}, QuickSort.quickSort(new int[]{}));
     }
 
     @Test
     void handlesAllDuplicates() {
-        assertArrayEquals(new int[]{4, 4, 4, 4}, Quicksort.quickSort(new int[]{4, 4, 4, 4}));
+        assertArrayEquals(new int[]{4, 4, 4, 4}, QuickSort.quickSort(new int[]{4, 4, 4, 4}));
         assertArrayEquals(new int[]{2, 2, 5, 5, 5},
-                Quicksort.quickSort(new int[]{5, 2, 5, 2, 5}));
+                QuickSort.quickSort(new int[]{5, 2, 5, 2, 5}));
     }
 
     @Test
     void handlesNegativeAndMixedValues() {
         assertArrayEquals(new int[]{-9, -1, 0, 3, 12},
-                Quicksort.quickSort(new int[]{3, -9, 12, 0, -1}));
+                QuickSort.quickSort(new int[]{3, -9, 12, 0, -1}));
     }
 
     @Test
     void handlesAReverseSortedArray() {
         assertArrayEquals(new int[]{1, 2, 3, 4, 5, 6, 7, 8, 9},
-                Quicksort.quickSort(new int[]{9, 8, 7, 6, 5, 4, 3, 2, 1}));
+                QuickSort.quickSort(new int[]{9, 8, 7, 6, 5, 4, 3, 2, 1}));
     }
 
     /**
@@ -101,7 +101,7 @@ class QuicksortTest {
     @Test
     void sortsTheCaseThatBrokeTheOriginal() {
         assertArrayEquals(new int[]{0, 0, 3, 4, 4, 4},
-                Quicksort.quickSort(new int[]{4, 0, 4, 3, 0, 4}),
+                QuickSort.quickSort(new int[]{4, 0, 4, 3, 0, 4}),
                 "the original returned [0, 0, 4, 3, 4, 4] here");
     }
 
@@ -109,11 +109,11 @@ class QuicksortTest {
     void handlesIntegerBoundsWithoutOverflowing() {
         assertArrayEquals(
                 new int[]{Integer.MIN_VALUE, -1, 0, 1, Integer.MAX_VALUE},
-                Quicksort.quickSort(new int[]{
+                QuickSort.quickSort(new int[]{
                         Integer.MAX_VALUE, 0, Integer.MIN_VALUE, 1, -1}));
         assertArrayEquals(
                 new int[]{Integer.MIN_VALUE, Integer.MAX_VALUE},
-                Quicksort.quickSort(new int[]{Integer.MAX_VALUE, Integer.MIN_VALUE}));
+                QuickSort.quickSort(new int[]{Integer.MAX_VALUE, Integer.MIN_VALUE}));
     }
 
     /**
@@ -134,7 +134,7 @@ class QuicksortTest {
             }
             int[] expected = input.clone();
             Arrays.sort(expected);
-            assertArrayEquals(expected, Quicksort.quickSort(input.clone()),
+            assertArrayEquals(expected, QuickSort.quickSort(input.clone()),
                     "failed on " + Arrays.toString(input));
         }
     }
@@ -150,7 +150,7 @@ class QuicksortTest {
         for (int[] input : cases) {
             int[] expected = input.clone();
             Arrays.sort(expected);
-            assertArrayEquals(expected, Quicksort.quickSort(input.clone()),
+            assertArrayEquals(expected, QuickSort.quickSort(input.clone()),
                     "failed for " + Arrays.toString(input));
         }
     }
@@ -173,9 +173,9 @@ class QuicksortTest {
                 ascending[i] = i;
                 descending[i] = n - i;
             }
-            assertArrayEquals(sorted(ascending), Quicksort.quickSort(ascending.clone()),
+            assertArrayEquals(sorted(ascending), QuickSort.quickSort(ascending.clone()),
                     "already-sorted input of length " + n);
-            assertArrayEquals(sorted(descending), Quicksort.quickSort(descending.clone()),
+            assertArrayEquals(sorted(descending), QuickSort.quickSort(descending.clone()),
                     "reverse-sorted input of length " + n);
         }
     }
@@ -186,8 +186,8 @@ class QuicksortTest {
 
     @Test
     void traceIsEmptyWhenThereIsNothingToDo() {
-        assertTrue(Quicksort.quickSortTrace(new int[]{}).isEmpty());
-        assertTrue(Quicksort.quickSortTrace(new int[]{7}).isEmpty(),
+        assertTrue(QuickSort.quickSortTrace(new int[]{}).isEmpty());
+        assertTrue(QuickSort.quickSortTrace(new int[]{7}).isEmpty(),
                 "a single element has no partition to perform");
     }
 
@@ -206,11 +206,11 @@ class QuicksortTest {
 			for (int i = 0; i < n; i++) {
 				input[i] = i;
 			}
-			assertEquals(Math.max(0, n - 1), Quicksort.quickSortTrace(input).size(),
+			assertEquals(Math.max(0, n - 1), QuickSort.quickSortTrace(input).size(),
 					"ascending input of length " + n);
 
 			Arrays.fill(input, 5);
-			assertEquals(Math.max(0, n - 1), Quicksort.quickSortTrace(input).size(),
+			assertEquals(Math.max(0, n - 1), QuickSort.quickSortTrace(input).size(),
 					"all-duplicate input of length " + n);
 		}
     }
@@ -224,7 +224,7 @@ class QuicksortTest {
                 for (int i = 0; i < n; i++) {
                     input[i] = random.nextInt(9) - 4;
                 }
-                assertEquals(n - 1, Quicksort.quickSortTrace(input).size(),
+                assertEquals(n - 1, QuickSort.quickSortTrace(input).size(),
                         "length " + n + " should always partition n-1 times, input was "
                                 + Arrays.toString(input));
             }
@@ -234,17 +234,17 @@ class QuicksortTest {
     @Test
     void traceEndsSortedAndAgreesWithTheFinalResult() {
         int[] input = {5, 3, 9, 1, 7};
-        List<int[]> trace = Quicksort.quickSortTrace(input);
+        List<int[]> trace = QuickSort.quickSortTrace(input);
         assertArrayEquals(new int[]{5, 3, 9, 1, 7}, input,
                 "the trace variant must not mutate its argument either");
         assertArrayEquals(sorted(input), trace.get(trace.size() - 1),
                 "the last state must be the finished sort");
-        assertArrayEquals(Quicksort.quickSort(input), trace.get(trace.size() - 1));
+        assertArrayEquals(QuickSort.quickSort(input), trace.get(trace.size() - 1));
     }
 
     @Test
     void everyTraceStateIsAnIndependentSnapshotOfTheSameLength() {
-        List<int[]> trace = Quicksort.quickSortTrace(new int[]{5, 3, 9, 1, 7});
+        List<int[]> trace = QuickSort.quickSortTrace(new int[]{5, 3, 9, 1, 7});
         List<int[]> seen = new ArrayList<>();
         for (int[] state : trace) {
             assertEquals(5, state.length, "every state is the whole array");
@@ -262,14 +262,14 @@ class QuicksortTest {
     /**
      * The trace is a record of *work*, so it must change the array and never reorder it wrongly.
      *
-     * <p>Quicksort permutes in place, so every recorded state is a permutation of the input. That
+     * <p>QuickSort permutes in place, so every recorded state is a permutation of the input. That
      * is checkable per state and would have caught the original: its states were permutations too,
      * but the final one was unsorted.
      */
     @Test
     void everyTraceStateIsAPermutationOfTheInput() {
         int[] input = {4, 0, 4, 3, 0, 4};
-        List<int[]> trace = Quicksort.quickSortTrace(input);
+        List<int[]> trace = QuickSort.quickSortTrace(input);
         int[] reference = input.clone();
         Arrays.sort(reference);
         for (int[] state : trace) {

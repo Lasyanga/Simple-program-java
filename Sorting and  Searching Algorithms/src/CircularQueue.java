@@ -83,27 +83,27 @@ public class CircularQueue {
     	
     		do{
     			
-        	       System.out.print("\n\tMENU\n1 Enqueue\n2 Dequeue\n3 Display\n4Exit\n");
+        	       System.out.print("\n\tMENU\n1 Enqueue\n2 Dequeue\n3 Display\n4 Exit\n");
         	       
         	       do{
-        	    	   System.out.print("Please input the corresponding number of your choose:");
+        	    	   System.out.print("Please enter the number of your choice:");
             	       opt = sc.next();
         	       }while(!Validator.isInt(opt));
         	       
         	       switch(Integer.parseInt(opt)){
         	       case 1:
         	    	   do{
-        	        	   System.out.print("Enter the element in queue: ");
+        	        	   System.out.print("Enter the element to enqueue: ");
         	        	   elem = sc.nextInt();
         	        	   cq.enqueue(elem);
-        	        	   System.out.print("Do you want insert other element?y/n: ");
+        	        	   System.out.print("Do you want to insert another element? (y/n): ");
         	        	   opt = sc.next();
         	           }while(opt.equalsIgnoreCase("y"));
         	    	   break;
         	       case 2:
         	    	   do{
         	    		   cq.dequeue();
-        	        	   System.out.print("Do you want delete again?y/n: ");
+        	        	   System.out.print("Do you want to delete again? (y/n): ");
         	        	   opt = sc.next();
         	           }while(opt.equalsIgnoreCase("y"));
         	    	   break;

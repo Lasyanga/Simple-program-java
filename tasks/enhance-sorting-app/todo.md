@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**15 of 22 code complete. 190 tests, 0 failures, 14 suites, verified by `mvn -q clean package`.
+**16 of 22 code complete. 193 tests, 0 failures, 15 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -20,13 +20,14 @@ Nothing pushed.**
 | 7 | Extract Insertion Sort | done — GUI-verified |
 | 8 | Extract Selection Sort | done — GUI-verified |
 | 9 | Extract Merge Sort | done — GUI-verified |
-| 10 | Extract Quicksort | done — **also fixed a wrong algorithm** |
+| 10 | Extract QuickSort | done — **also fixed a wrong algorithm** |
 | 11 | Extract Linear Search | done — GUI-verified; **fixed a wrong behaviour** |
 | 12 | Extract Jump Search | done — GUI-verified; **option had never worked** |
 | 13 | One `Presenter` for all dialogs | done — enforced by `ArchitectureTest` |
 | 14 | Recursive `Menu()` → loop | done — no loop advances by recursion |
 | 15 | Dead code + triplicated validators | done — **changed queue behaviour on purpose** |
-| 16-22 | Polish, layout and packaging | open |
+| 16 | Typos and inconsistent naming | done - **the checkpoint after 14-16** |
+| 17-22 | Layout, packaging and docs | open |
 
 **All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
 no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
@@ -43,6 +44,11 @@ the recursive call never returned. The app now separates "the loop is over" (`Me
 "end the process" (`main` exits) — a distinction worth keeping, because returning from `main` costs
 about 1.3s of AWT auto-shutdown versus 7ms for `System.exit`. The two queue demos still call
 `System.exit`; they are out of scope until Task 21.
+
+**Phases 0-3 are complete.** The app has a build, its algorithms are pure and fuzz-tested against
+independent oracles, every dialog goes through one presenter, no loop advances by recursion, and the
+dead code and duplicated validators are gone. What remains is layout (17-18), the option-7 decision
+(19), documentation (20), queue coverage (21) and line endings (22).
 
 **Task 15 found the drift the duplication had caused.** The three "identical" digit validators were
 not identical, and the two weakest accepted digits too large for an `int` — which crashed both queue
@@ -1226,21 +1232,85 @@ function itself, including the boundary cases the app never reaches.
 
 ## Task 16: Fix typos and inconsistent naming
 
-**Status:** open
+**Status:** done — verified by `UserFacingTextTest` (3 tests) + the 19 GUI transcripts
 
 **Description:** Mechanical pass, no logic changes. Rename `partion` to `partition`; fix the
 "Insetion Sort" dialog title; rewrite the broken "Enter the you want to Search:[element][interval]"
 prompt in both search classes (and drop the `[element][interval]` hint, which describes a format
 the code never parses); make `Quicksort` consistent with `BubbleSort`/`InsertionSort` casing.
 
+**Context:** `CODE_REVIEW.md §Suggested order of work` (item 6)
+
+**Three of this task's four items were already done before it started**, verified rather than assumed:
+
+- `partion` → `partition` — done in **Task 10**, which rewrote the method anyway.
+- The `"Insetion Sort"` dialog title — gone since **Task 7**, because `Runner` now supplies the title
+  to `showSortTrace` rather than each class naming its own.
+- The `[element][interval]` hint — dropped in **Task 12**, which rewrote the search prompt.
+
+So the real remaining work was the class casing and a sweep of user-visible text nobody had listed.
+
+**What was actually wrong, found by reading every string rather than the brief's four examples:**
+
+| was | now | where |
+|---|---|---|
+| `Enter the size od queue:` | `…of queue:` | `QueueJava` |
+| `4Exit` | `4 Exit` | both consoles |
+| `Please input the corresponding number of your choose:` | `Please enter the number of your choice:` | both consoles |
+| `Enter the element in queue:` | `Enter the element to enqueue:` | both consoles |
+| `Do you want insert other element?y/n:` | `Do you want to insert another element? (y/n):` | both consoles |
+| `Do you want delete again?y/n:` | `Do you want to delete again? (y/n):` | both consoles |
+| `Do you want peek again?y/n:` | `Do you want to peek again? (y/n):` | `QueueJava` |
+| `Enter the you want to Search:` | `Enter the value you want to search for:` | both search dialogs |
+| `[5]Quick` | `[5]Quick Sort` | the menu |
+
+**The `[5]Quick` change is the one that is not a typo** — it was an inconsistency, and the only menu
+option whose label did not name the window it opened. Every other option already did.
+
+**Deliberately not changed, and this is a judgement call worth arguing with:**
+- **`"This program show diff."`** left exactly as the 2019 author wrote it. It is not a typo one can
+  correct without guessing at intent, and a confident rewrite would be inventing meaning rather than
+  fixing a spelling mistake. A human should decide what it was meant to say.
+- **The author's voice is intact:** `"Welcome!!"`, `"Bye.. bye.."`, `"Message from Cowboy"`,
+  `"Invalid Input..."`, `"Overflow Program terminated."`. Correct English, deliberate character.
+
+**`Quicksort` → `QuickSort`.** The only casing outlier among the algorithm classes; every other one is
+`PascalCase` with `Sort`/`Search` as a separate word. Done with `git mv` so history follows both the
+class and its test, and verified with a **case-sensitive** search — the first check was
+case-*insensitive* by accident and reported 44 remaining references on an already-renamed file.
+
+**`UserFacingTextTest` makes "no user-visible string contains a typo" executable.** It scans the
+sources because the three entrypoints cannot be reached by one test: the Swing strings live in
+`Presenter`, and two of the three demos call `System.exit(0)` so they cannot be driven in-process at
+all. It holds a table of bad/good pairs and asserts both directions — the typo is absent *and* the
+replacement is present, so a prompt cannot be "fixed" by deleting it.
+
+**Its scanner is deliberately the opposite of `ArchitectureTest`'s.** That one blanks string literals
+because it asserts about code; this one keeps them, because it asserts about the text inside them.
+Getting that wrong made the two Swing corrections pass **vacuously** on the first red run — the
+strings being searched for had been replaced by spaces before the search. Worth recording: copying a
+helper across a boundary where its assumptions invert is how that happened.
+
 **Acceptance criteria:**
-- [ ] No user-visible string contains a typo
-- [ ] Class naming is consistent across the six algorithm classes
-- [ ] No logic changes in this commit — diff is strings and one method name only
+- [x] No user-visible string contains a typo — except the one deliberate exception above
+- [x] Class naming is consistent across the six algorithm classes
+- [x] No logic changes in this commit — strings, one class name, and its test's name
 
 **Verification:**
-- [ ] Tests pass: `mvn -q test`
-- [ ] Manual check: every dialog's text and title read correctly
+- [x] Tests pass: `mvn -q test -Dtest=UserFacingTextTest` — 3 tests, 0 failures, red first
+- [x] Tests pass: `mvn -q clean package` — see the Progress ledger
+- [x] The 12 `GuiSessionTest` fragments asserting the old search prompt were updated to the corrected
+      one. **Retargeted, not weakened** — the same 12 assertions, matching the new text. That is the
+      evidence the change was intentional rather than accidental: had the prompt not moved, these
+      tests would have failed.
+- [x] **Mutation-tested, because two corrections were silently unchecked first.** Two of the nine
+      table keys were written with a single `\n`, which Java turned into a real newline; the source
+      files contain the two characters `\` and `n`, so those keys matched nothing and were being
+      verified by no assertion at all. Reintroducing both typos into `Presenter` now fails the test
+      with them named; before the fix the same mutation would have passed.
+- [ ] Manual: every dialog's text and title *read correctly*. The suite proves the strings are the
+      ones intended; it cannot judge whether they read well on screen, which is the standing
+      legibility gap and applies more than usual to a task whose whole content is wording.
 
 **Dependencies:** Task 14
 
@@ -1255,10 +1325,21 @@ the code never parses); make `Quicksort` consistent with `BubbleSort`/`Insertion
 ---
 
 ### Checkpoint: After Tasks 14-16
-- [ ] `mvn -q clean package` succeeds and `mvn -q test` passes
-- [ ] No self-recursive call remains in any menu or dialog loop
-- [ ] `git grep` confirms the dead code is gone
-- [ ] Review with human before proceeding
+
+**Reached 2026-10-07. Three of four items met; the fourth is a standing gap, not an oversight.**
+
+- [x] `mvn -q clean package` succeeds and `mvn -q test` passes — 193 tests, 0 failures, 15 suites
+- [x] No self-recursive call remains in any menu or dialog loop — `Menu`, `searchLinear`,
+      `searchJump`, `askSearchKey`, enforced by `ArchitectureTest` and mutation-tested
+- [x] `git grep` confirms the dead code is gone — the three validators, two `isString` copies, the
+      never-assigned `quiano` fields, `StringTokenizer`, `inpt[]`, the commented `CircularQueue` demo
+- [ ] Review with human before proceeding — **outstanding, and this is the checkpoint's purpose.**
+      Two things a person must decide:
+  1. `"This program show diff."` on the welcome screen. Left as the 2019 author wrote it; correcting
+     it means guessing at intent rather than fixing a spelling mistake.
+  2. Legibility of every corrected prompt once rendered. `GuiDriver` reads a label's text, never the
+     screen — the gap has been open since Task 6 and is widest now, because Task 16 changed the words
+     rather than the code.
 
 ---
 

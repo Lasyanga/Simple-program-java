@@ -60,7 +60,7 @@ public class QueueJava {
     	int len, elem, x=0;
     	String opt, input;
     	do{
-    		System.out.print("Enter the size od queue: ");
+    		System.out.print("Enter the size of queue: ");
         	input = sc.next();
     	}while(!Validator.isInt(input));
     	
@@ -74,34 +74,34 @@ public class QueueJava {
     		do{
         		System.out.println("The size of the queue is: "+len);
         	       QueueJava q = new QueueJava(len);
-        	       System.out.print("\n\tMENU\n1 Enqueue\n2 Dequeue\n3 Peek\n4Exit\n");
+        	       System.out.print("\n\tMENU\n1 Enqueue\n2 Dequeue\n3 Peek\n4 Exit\n");
         	       
         	       do{
-        	    	   System.out.print("Please input the corresponding number of your choose:");
+        	    	   System.out.print("Please enter the number of your choice:");
             	       opt = sc.next();
         	       }while(!Validator.isInt(opt));
         	       
         	       switch(Integer.parseInt(opt)){
         	       case 1:
         	    	   do{
-        	        	   System.out.print("Enter the element in queue: ");
+        	        	   System.out.print("Enter the element to enqueue: ");
         	        	   elem = sc.nextInt();
         	        	   q.enqueue(elem);
-        	        	   System.out.print("Do you want insert other element?y/n: ");
+        	        	   System.out.print("Do you want to insert another element? (y/n): ");
         	        	   opt = sc.next();
         	           }while(opt.equalsIgnoreCase("y"));
         	    	   break;
         	       case 2:
         	    	   do{
         	    		   q.dequeue();
-        	        	   System.out.print("Do you want delete again?y/n: ");
+        	        	   System.out.print("Do you want to delete again? (y/n): ");
         	        	   opt = sc.next();
         	           }while(opt.equalsIgnoreCase("y"));
         	    	   break;
         	       case 3:
         	    	   do{
         	    		   q.peek();
-        	        	   System.out.print("Do you want peek again?y/n: ");
+        	        	   System.out.print("Do you want to peek again? (y/n): ");
         	        	   opt = sc.next();
         	           }while(opt.equalsIgnoreCase("y"));
         	    	   break;

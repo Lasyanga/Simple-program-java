@@ -117,8 +117,8 @@ public class Runner {
 					break;
 
 				case 5:
-					showSortTrace("Quick Sort", Quicksort.quickSortTrace(arr.getCopy()),
-							Quicksort.quickSort(arr.getCopy()));
+					showSortTrace("Quick Sort", QuickSort.quickSortTrace(arr.getCopy()),
+							QuickSort.quickSort(arr.getCopy()));
 					break;
 
 				case 6:

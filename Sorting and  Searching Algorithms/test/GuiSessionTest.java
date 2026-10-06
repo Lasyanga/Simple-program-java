@@ -233,7 +233,7 @@ class GuiSessionTest {
         for (int i = 0; i < cycles; i++) {
             steps.add("Length of your Array");
             steps.add("6");
-            steps.add("Enter the you want to Search");
+            steps.add("Enter the value you want to search for");
             steps.add("!");
         }
         steps.add("Length of your Array");
@@ -305,9 +305,9 @@ class GuiSessionTest {
                 "Element[1]", "2",
                 "Element[2]", "3",
                 "Length of your Array", "6",
-                "Enter the you want to Search", "2",
+                "Enter the value you want to search for", "2",
                 "2 is @ index: 1", "-",
-                "Enter the you want to Search", "!",
+                "Enter the value you want to search for", "!",
                 "Length of your Array", "9"}));
 
         assertRanCleanly(s);
@@ -329,11 +329,11 @@ class GuiSessionTest {
                 "Element[1]", "1",
                 "Element[2]", "9",
                 "Length of your Array", "6",
-                "Enter the you want to Search", "9",
+                "Enter the value you want to search for", "9",
                 "9 is @ index: 0 2", "-",
-                "Enter the you want to Search", "4",
+                "Enter the value you want to search for", "4",
                 "is not found", "-",
-                "Enter the you want to Search", "!",
+                "Enter the value you want to search for", "!",
                 "Length of your Array", "9"}));
 
         assertRanCleanly(s);
@@ -373,9 +373,9 @@ class GuiSessionTest {
                 "Element[2]", "17",
                 "Element[3]", "8",
                 "Length of your Array", "8",
-                "Enter the you want to Search", "17",
+                "Enter the value you want to search for", "17",
                 "Element @ index: 2", "-",
-                "Enter the you want to Search", "!",
+                "Enter the value you want to search for", "!",
                 "Length of your Array", "9"}));
 
         assertRanCleanly(s);
@@ -405,7 +405,7 @@ class GuiSessionTest {
                 "Element[1]", "6",
                 "Element[2]", "7",
                 "Length of your Array", "8",
-                "Enter the you want to Search", "!",
+                "Enter the value you want to search for", "!",
                 "Length of your Array", "9"}));
 
         assertRanCleanly(s);
@@ -629,11 +629,11 @@ class GuiSessionTest {
                 "Element[1]", "2",
                 "Element[2]", "3",
                 "Length of your Array", "6",
-                "Enter the you want to Search", "2",
+                "Enter the value you want to search for", "2",
                 "2 is @ index: 1", "-",
-                "Enter the you want to Search", "!",
+                "Enter the value you want to search for", "!",
                 "Length of your Array", "6",
-                "Enter the you want to Search", "!",
+                "Enter the value you want to search for", "!",
                 "Length of your Array", "9"}));
 
         assertRanCleanly(s);

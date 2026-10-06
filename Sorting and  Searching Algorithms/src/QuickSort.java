@@ -1,5 +1,5 @@
 /**
- * Quicksort, extracted from the 2019 dialog-driven version of this class.
+ * QuickSort, extracted from the 2019 dialog-driven version of this class.
  *
  * <p>Pure: no fields, no dialogs, no callbacks, no reference to Runner.
  *
@@ -21,7 +21,7 @@
  * relying on the pivot value being present to stop them, which is not guaranteed once elements
  * have been swapped. So the partition is replaced too, with explicitly bounded scans.
  *
- * <p>Verified by {@link QuicksortTest}: 20,000 fuzz cases against {@link java.util.Arrays#sort}
+ * <p>Verified by {@link QuickSortTest}: 20,000 fuzz cases against {@link java.util.Arrays#sort}
  * on a fixed seed, plus already-sorted and reverse-sorted input up to 4,000 elements, which are
  * this algorithm's adversarial cases and the shape that would expose unbounded scans.
  *
@@ -30,9 +30,9 @@
  * a mistake becomes visible - the 2019 version printed sub-ranges after they had been sorted,
  * which looked plausible while the array was not.
  */
-public final class Quicksort {
+public final class QuickSort {
 
-	private Quicksort(){
+	private QuickSort(){
 		// Not instantiable: every entry point is static.
 	}
 

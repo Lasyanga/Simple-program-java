@@ -22,12 +22,17 @@ import javax.swing.JOptionPane;
  * <p>The trace formatter in {@link #showSortTrace} does use loops, over the states it was handed.
  * Those are layout, not control flow — there is no branch and no decision in them.
  *
- * <p><b>Wording and message ordering are preserved exactly.</b> Task 13 relocates strings, it does not
- * revise them, so {@code GuiSessionTest} had to keep passing unmodified — it asserts on transcripts
- * containing the literal dialog text. Two things worth preserving deliberately rather than tidying:
- * the menu lists {@code [5]Quick}, not {@code Quick Sort}, and the search prompts read
- * {@code "Enter the you want to Search:"}. Both are wrong English and both are what users see. Task
- * 16 fixes typos; this task does not.
+ * <p>Wording and message ordering were preserved exactly through Task 13, which relocated these
+ * strings without revising them. Task 16 then corrected the ones that were wrong to a reader:
+ * {@code "Enter the you want to Search:"} became {@code "Enter the value you want to search for:"},
+ * and menu option 5 read {@code [5]Quick} while the dialog it opened was titled {@code Quick Sort} —
+ * the only option whose label did not name its window. Both are asserted by
+ * {@code UserFacingTextTest}.
+ *
+ * <p><b>Still deliberately ungrammatical.</b> {@code "This program show diff."} is left exactly as
+ * the 2019 author wrote it. It is not a typo one can correct without guessing what was meant, and a
+ * confident rewrite would be inventing intent rather than fixing a spelling mistake. The author's
+ * voice is otherwise intact too: "Welcome!!", "Bye.. bye..", "Message from Cowboy".
  */
 public final class Presenter {
 
@@ -79,7 +84,7 @@ public final class Presenter {
 						"[2]Insertion Sort\n" +
 						"[3]Selection Sort\n" +
 						"[4]Merge Sort\n" +
-						"[5]Quick\n" +
+						"[5]Quick Sort\n" +
 						"[6]Linear Search\n" +
 						"[7]Exponential Search\n" +
 						"[8]Jump Search\n" +
@@ -133,7 +138,7 @@ public final class Presenter {
 	public static String askSearchKey(String title, String heading, String elements, String position){
 		return JOptionPane.showInputDialog(null,
 				heading + " element: " + elements + "\n" + position
-						+ "\nEnter the you want to Search:",
+						+ "\nEnter the value you want to search for:",
 				title, JOptionPane.QUESTION_MESSAGE);
 	}
 

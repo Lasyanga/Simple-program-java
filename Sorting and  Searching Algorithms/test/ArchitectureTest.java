@@ -41,7 +41,7 @@ class ArchitectureTest {
     /** The seven algorithm/search classes. All should be pure: no fields, no dialogs, all static. */
     private static final List<String> ALGORITHMS = List.of(
             "BubbleSort", "InsertionSort", "SelectionSort", "MergeSort",
-            "Quicksort", "LinearSearch", "JumpSearch");
+            "QuickSort", "LinearSearch", "JumpSearch");
 
     private static Path sourceDir() {
         Path dir = Path.of(System.getProperty("user.dir"), "Sorting and  Searching Algorithms", "src");

@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Tests for {@link JumpSearch}'s core, made pure.
  *
- * <p><b>The algorithm was already correct.</b> Unlike {@link Quicksort}, which looked fine and
+ * <p><b>The algorithm was already correct.</b> Unlike {@link QuickSort}, which looked fine and
  * wasn't, this one was verified by execution before being touched: 600,000 differential trials
  * against a brute-force reference, over sorted arrays both strictly increasing and containing
  * duplicates, plus every length up to 1,000,000. Zero wrong answers. So this suite exists to
