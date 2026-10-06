@@ -8,11 +8,17 @@ against that goal, and separately against what a portfolio repo would need today
 
 ## How this review was produced
 
-Every finding below comes from reading the source. **Nothing was compiled or executed** —
-the machine this review ran on has a JRE 8 only, no JDK, and the committed `.class` files
-are Java 13 bytecode that will not load there. Findings marked *confirmable* are the ones
-that describe user-visible behavior and should be reproduced once a JDK is available
-before acting on them. Line numbers refer to the sources as committed.
+The first pass came from reading the source only. **Updated 2026-10-06, after Task 1 installed
+JDK 27:** the machine now has a working JDK and Maven, and the findings below have been
+**executed rather than merely read**. Findings dated 2026-10-06 with quoted exception messages
+were confirmed by running code — the algorithm and queue cores were driven directly from a
+scratch class in the default package, compiled against the build output. Doing so confirmed
+every original claim and **surfaced three defects this review had missed**, recorded in
+`## Correctness` below.
+
+What still cannot be verified: the Swing dialog behavior itself. `Runner` is a modal
+`JOptionPane` loop, so anything about what the user actually sees needs a human clicking
+through. Line numbers refer to the sources as committed at the `v1.0.0` tag.
 
 ## Verdict
 
@@ -30,15 +36,21 @@ Every problem below lives in the layer that draws dialogs.
 ## Correctness
 
 **Critical — `QueueJava`'s overflow and underflow guards don't stop execution.**
-`QueueJava.java:26-35` prints "Overflow Program terminated." and then falls straight through
-to `rear = (rear+1)%capacity; arr[rear]=item; count++`. The `System.exit(1)` that would have
-stopped it is commented out on line 28. On underflow (lines 46-53) it is worse: `count--`
-takes `count` to `-1`, and since `isEmpty()` is `size()==0`, the queue becomes permanently
-non-empty *and* non-full, printing garbage forever. The guard is decorative in exactly the
-same way as the `sort` counter below.
-Reachable by a user, not just by inspection.
-*Edge case:* entering size `0` yields `capacity==0`, and `% capacity` throws
-`ArithmeticException`.
+~~Open.~~ **Fixed 2026-10-06 (Task 4).** `QueueJava.java:26-35` printed
+"Overflow Program terminated." and then fell straight through to
+`rear = (rear+1)%capacity; arr[rear]=item; count++`, because the `System.exit(1)` that would
+have stopped it was commented out. On underflow (lines 46-53) it was worse: `count--` took
+`count` to `-1`, and since `isEmpty()` is `size()==0`, the queue became permanently non-empty
+*and* non-full, printing garbage forever. Reachable by a user, not just by inspection.
+
+Both `//System.exit(1);` lines are now `return;`, so the guards actually stop. The constructor
+also rejects `size < 1` with `IllegalArgumentException`, replacing the `ArithmeticException`
+from `% capacity` that used to surface the mistake some distance away. Covered by
+`QueueJavaTest` (7 tests), which failed 5 of 7 against the old code — reporting size 3 into
+capacity 2, size -1, and no exception at all for capacity 0.
+
+`CircularQueue` was checked for the same defect and is **clean**: its guards use `if/else`, so
+they genuinely prevent fall-through. Verified by execution.
 
 **Required — an empty text field kills the app.** `Runner.intOnly("")` returns `true`: the
 loop at `Runner.java:140` never executes for a zero-length string, so it falls through to
@@ -46,7 +58,11 @@ loop at `Runner.java:140` never executes for a zero-length string, so it falls t
 `Integer.parseInt("")` → `NumberFormatException`. At the array-length prompt, `GUI()`'s
 catch swallows it and the app exits with "Bye.. bye..". At the menu, `Menu()` has no
 try/catch, so the exception propagates up to that same handler and the app dies.
-*Confirmable in ten seconds once a JDK exists.*
+*Verified 2026-10-06 by execution, not inspection.* `intOnly("")` returns `true`;
+`Integer.parseInt("")` throws `NumberFormatException: For input string: ""`. **Cancel takes a
+second route to the same place:** `showInputDialog` returns `null`, and `intOnly(null)` throws
+`NullPointerException` on `str.length()` before the digit loop runs. So both "clear the field"
+and "press Cancel" end in the same handler — there are two distinct crash paths, not one.
 
 **Required — `Menu()` recurses instead of looping.** `Runner.java:135` calls `Menu()`
 unconditionally at the bottom of a `do/while`, and several `case` labels call it again. The
@@ -56,13 +72,63 @@ Practically harmless at demo scale, but it is a misunderstanding of the language
 infects the whole app, and `LinearSearch.Searching` (line 57) and
 `JumpSearch.JumpsearchGUI` (line 45) do the same thing.
 
-**Required — the `sort` counter guards nothing.** `sort += 1` in cases 1-5 is a boolean
-written as an integer, never read for anything except the `sort == 0` test in cases 7 and 8.
-But case 8 passes `arr.getsorted()`, which clones and `Arrays.sort`s a fresh array
-(`Array.java:37-41`) every time. So the array handed to Jump Search is sorted by the JDK
-regardless of the gate — and regardless of which sort the user actually ran. The check looks
-like validation; the JDK does the work. Make it a boolean, or drop it and state plainly that
-jump search sorts for you.
+**Required — the `sort` counter guards nothing.** ~~Open.~~ **Fixed 2026-10-06 (Task 5).**
+`sort += 1` in cases 1-5 was a boolean written as an integer, read only for the `sort == 0`
+test in cases 7 and 8. But case 8 passed `arr.getsorted()`, which clones and `Arrays.sort`s a
+fresh array (`Array.java:37-41`) every time — so the array handed to Jump Search was sorted by
+the JDK regardless of the gate and regardless of which sort the user ran. The check looked like
+validation; the JDK did the work.
+
+Deliberately resolved by **deleting** the counter, not by making it honest. Making it honest
+would mean passing `arr.getCopy()` to Jump Search, and that was verified to be *wrong*: the
+stored array is never sorted, because `setCopy()` runs exactly once after input and every sort
+clones without writing back (`getSortedBubble()` and `getSortedInsertion()` are dead). Jump
+Search would have received unsorted input and silently returned wrong indices.
+
+The false "You Must sort the array element in able to perform this algorithm." message is gone.
+`ArrayTest` now pins the mechanism: `getsorted()` sorts a clone and does not mutate the stored
+copy, and `getCopy()` returns the live reference.
+
+**Required — searching for the number 2 silently returns to the menu.** `JOptionPane.CANCEL_OPTION`
+is **2**, not -1. `LinearSearch.java:28` and `JumpSearch.java:39` both compare the parsed search
+value against it, so typing `2` into the search box is interpreted as "user cancelled" and the
+app navigates away instead of searching. Every other digit searches normally, which is exactly
+why this survives a casual try. Found 2026-10-06; I had assumed `CANCEL_OPTION` was -1 and was
+wrong — it is only reachable because `intOnly` accepts all digits, and `2` is a digit.
+The check is unreachable *as written* in `JumpSearch` (line 35 NPEs first) but live in
+`LinearSearch`.
+
+**Required — an array length of 0 ends the app.** ~~Open.~~ **Fixed 2026-10-06 (Task 3).**
+`GUI()`'s loop is
+`do { do { prompt; arr.setElement(count, …); count++ } while(!intOnly(insElem)) } while(count < size)`.
+The outer `do/while` runs its body **once** before testing the condition, so one element is
+always requested. With `size == 0`, `Array.setElement(0, …)` indexed a zero-length array and
+threw `ArrayIndexOutOfBoundsException`, landing in the catch that prints "Bye.. bye..".
+Verified by execution 2026-10-06; the user only had to type `0` as the length. The fix is
+`Runner.isValidLength`, which requires a value of at least 1 **before** the array is created,
+so `size == 0` can no longer reach `setElement` at all.
+
+**Required — `jumpSearch` throws on an empty array.** `JumpSearch.java:59` evaluates
+`array[Math.min(step, len) - 1]`; with `len == 0` and `step == 0` that is `array[-1]`, so
+`ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 0`. Verified 8/8 correct
+against brute force on non-empty inputs, so the core is sound — only the empty case is missing
+a guard.
+
+> **Superseded 2026-10-06.** This entry previously claimed the empty-array crash was
+> "unreachable, and fixing length-0 without this one simply moves the crash." **That was
+> wrong.** `isValidLength` refuses 0 outright, so the length-0 crash was *removed*, not moved:
+> `size`'s only writer is `Runner.java`, `arr` is built from it, and `JumpSearch` receives
+> `arr.getsorted()`. `jumpSearch` therefore cannot see an empty array from the GUI at all.
+> The guard below is still worth having for the method's own sake — it is a public static
+> that any caller can pass `new int[0]` to — but it is defensive, not a live user path.
+
+**Verified correct 2026-10-06, contradicting no claim above:** `JumpSearch.jumpSearch`'s core
+(lines 53-75) is correct — 8 of 8 differential cases against a brute-force reference, covering
+first, last, interior, both out-of-range directions, and single-element input. And the
+never-assigned `private Runner quiano` fields do **not** NPE, because `Runner.Menu()` and
+`Runner.intOnly()` are `static` and Java discards the receiver for a static call. Confirmed by
+invoking `intOnly` through a null reference. This is why those fields survive at all — and why
+"fixing" them by assigning `new Runner()` would be a regression, not a repair.
 
 ## Architecture — the one structural problem
 
@@ -85,6 +151,49 @@ The move that deletes the most complexity:
 Step 1 alone makes `assertArrayEquals(sorted, BubbleSort.sort(input))` possible, which would
 have caught the Quicksort display bug at compile time instead of 2019.
 
+### Correction, 2026-10-07: Quicksort's algorithm was also wrong
+
+This review reported only Quicksort's **display** bug and said the sort itself was correct. **That
+was wrong, and the claim has been acted on incorrectly.** `QuicksortTest` found the algorithm
+returns the wrong answer on a large fraction of ordinary inputs.
+
+**The defect.** The 2019 code partitioned, then recursed on `[low..pi-1]` and `[pi..high]`:
+
+```java
+int pi = partion(arr, low, high);
+if (low < pi - 1) { quickRecursion(arr, low, pi-1); ... }
+if (pi < high)    { quickRecursion(arr, pi, high);   ... }
+```
+
+Hoare's partition returns a **boundary**, not the pivot's final position. Its guarantee is that
+everything in `[low..pi]` is `<=` everything in `[pi+1..high]`. Recursing as above puts `arr[pi]`
+in the *right*-hand range, where nothing ever compares it against that range - so the pivot's
+guarantee is silently discarded. Every index is still covered by one branch or the other, which is
+exactly why the bug is invisible on inspection: no element is lost, elements are merely left in
+the wrong order.
+
+**Evidence.** Delta-debugged to a minimal case: `[4, 0, 4, 3, 0, 4]` sorted to
+`[0, 0, 4, 3, 4, 4]` - a `3` stranded behind a `4`. Failure rate by length over random inputs
+with duplicates: 0% at n<=3, then 14% (n=4) rising to 25% (n=8). Over 200,000 random inputs of
+length 1-13, **38,264 wrong answers, about one in five.**
+
+**Why a bounds-only fix was not enough.** Correcting the bounds to `[low..pi]` / `[pi+1..high]`
+overflowed the stack immediately. The 2019 partition's inner scans are unbounded -
+`while(arr[low] < pivot) low++;` and `while(arr[high] > pivot) high--;` - relying on the pivot
+value being present to stop them, which stops being true once elements have been swapped past it.
+The partition itself had to be replaced with explicitly bounded scans, which is what shipped.
+
+**Now fixed**, in the same commit as the extraction (Task 10). Verified by `QuicksortTest`: 20,000
+fuzz cases against `Arrays.sort` on a fixed seed, plus already-sorted and reverse-sorted input up
+to 4,000 elements. `Arrays.sort` is the oracle, so this is not a reimplementation agreeing with
+itself.
+
+**The lesson about this document.** "Correct" was asserted from reading, and reading is exactly
+what missed it: the split looked sound because it covered every index. A review that states an
+algorithm is correct without running it is making an unverified claim, and this one did it in the
+direction of under-reporting. The other sorts' algorithms were verified by execution before this
+point and are unaffected.
+
 ## Readability
 
 `MergeSort` is the hard one. `count`, `x`, `y`, and `round` (lines 8-9) exist only to indent
@@ -97,7 +206,9 @@ Worth knowing before editing that file: `MergeSort`'s single tail-copy loop look
 (where is the right-side loop?) and is not one — the main loop already guarantees only one
 side can have leftovers. Add a comment, because the next reader will second-guess it too.
 
-**Nit:** `partion` is misspelled (`Quicksort.java:34`); the dialog title reads "Insetion
+**Nit** (partly resolved): `partion` was misspelled (`Quicksort.java:34`) and is now `partition`,
+though the spelling only went away because the method was rewritten - see the Quicksort correction
+above; the dialog title reads "Insetion
 Sort" (`InsertionSort.java:21`); the search prompt is "Enter the you want to
 Search:[element][interval]" in both search classes, and that `[element][interval]` hint is
 false — the code does `Integer.parseInt` on the whole input; `Quicksort` vs `BubbleSort`
@@ -109,17 +220,30 @@ casing is inconsistent.
 
 - `SelectionSort.java:5` — `private Array arr;`, never assigned or read.
 - `JumpSearch.java:13` — `inpt[] = new int[2]`, never used.
-- `LinearSearch.java:26-28` — `opt == JOptionPane.CANCEL_OPTION` is unreachable:
-  `showInputDialog` returns `null` on cancel, and `Integer.parseInt(null)` throws first.
+- `LinearSearch.java:34-36` — `opt == JOptionPane.CANCEL_OPTION`. **This was misfiled as dead
+  code in an earlier draft of this review and that was wrong.** `CANCEL_OPTION` is **2**, not
+  -1, and `intOnly("2")` is true, so the comparison is reachable by ordinary input: see the
+  Required finding above. It was only unreachable in `JumpSearch`, where line 35 throws first.
 - `CircularQueue.java:143-156` — commented-out demo block.
 - The digit validator, copy-pasted three times as `Runner.intOnly`, `QueueJava.isInteger`,
   `CircularQueue.isInteger`.
 
-**FYI, and this is the interesting one:** the empty `catch (Exception e) {}` blocks in
-`LinearSearch` and `JumpSearch` are *load-bearing*. Cancel on those dialogs returns `null`,
-`intOnly(null)` throws NPE, and the empty catch is the only reason Cancel returns you to the
-menu instead of crashing. Those blocks are not laziness — they are accidentally the entire
-error strategy. Know this before "cleaning them up."
+**Superseded 2026-10-06 — this note would now cause an outage.** This review previously said the
+empty `catch (Exception e) {}` blocks in `LinearSearch` and `JumpSearch` were *load-bearing*:
+"Cancel returns `null`, `intOnly(null)` throws NPE, and the empty catch is the only reason Cancel
+returns you to the menu instead of crashing."
+
+**That stopped being true the moment `intOnly` was fixed.** `intOnly(null)` now returns `false`
+instead of throwing, which turned `LinearSearch`'s
+`do { … } while(!quiano.intOnly(input))` into an **infinite re-prompt loop on Cancel** — the user
+could not leave the dialog. It is now guarded by an explicit `input == null` check
+(`LinearSearch.java:28-31`) that returns to the menu. So:
+
+- Do **not** delete `LinearSearch`'s null check on the strength of this section. It is load-bearing
+  *now*, for the opposite reason.
+- `JumpSearch`'s empty catch is still doing load-bearing work, for its own separate reason: line
+  35 dereferences a `StringTokenizer` that is never assigned, so it NPEs before `intOnly` is
+  reached, on every input including valid ones. Task 12 replaces this.
 
 ## Performance
 
@@ -132,8 +256,12 @@ complexity. Leave this alone unless the intent is to demo on large arrays.
 ## Security
 
 Nothing. No file I/O, no network, no SQL, no secrets, no external input beyond
-`Integer.parseInt` on dialog text. The only real robustness gap is the empty-string one
-above. This axis is clean.
+`Integer.parseInt` on dialog text. This axis is clean.
+
+The robustness gaps in that input path were three, not one, and an earlier draft of this review
+named only the first: an **empty field**, a **null** from Cancel, and **integer overflow** on a
+long run of digits. All three reached `Integer.parseInt` through a validator that said yes. Task
+3 closed all three; see `## Correctness`.
 
 ---
 
@@ -155,18 +283,31 @@ Worth recording, because the findings above are long:
 
 ## Suggested order of work
 
+Tracking lives in `tasks/enhance-sorting-app/todo.md` — that file owns the work items; this
+list is the summary and must not be treated as the source of truth for status.
+
 1. Fix the two reachable crashes (`QueueJava` overflow/underflow fall-through;
-   `intOnly("")`). Both are small and both are real.
+   `intOnly("")`). Both are small and both are real. **Both confirmed by execution
+   2026-10-06.** Note there are *two* crash paths in the second one, not one: an empty field
+   gives `NumberFormatException`, Cancel gives `NullPointerException`.
 2. Add tests for the six algorithms. After step 4 this is nearly free, and it is the single
    biggest improvement available to this repo.
 3. Make `sort` a boolean, or delete the gate.
 4. Extract the algorithms into pure static methods; collapse the six `xxxGUI()` methods into
-   one presenter.
+   one presenter. **Correction:** `LinearSearch` has *no* pure method to extract — its logic
+   lives in `Searching()`, which mutates static `position` and opens a dialog. It needs
+   authoring, not extraction. `JumpSearch.jumpSearch` *is* already pure and correct.
 5. ~~Drop `bin/*.class` from git, add a `.gitignore`~~ **done 2026-10-06** — `.gitignore` added
-   and the 11 `.class` files untracked. Still open: add a real build file, which is what makes
-   the repo usable by anyone else.
+   and the 11 `.class` files untracked. ~~Still open: add a real build file~~ **done
+   2026-10-06** — Maven 3.9.16 and `pom.xml` added, JUnit 5 wired and verified running.
 6. Never, under any circumstances, "fix" `quiano = new Runner()`. It restarts the entire
-   input dialog.
+   input dialog. **Confirmed 2026-10-06** that the null field is harmless today *only*
+   because `Menu()` and `intOnly()` are `static`.
+7. **New, found by execution 2026-10-06** — see `## Correctness`:
+   (a) searching for the value `2` silently cancels, because `CANCEL_OPTION` is 2, not -1;
+   (b) array length `0` ends the app via the `do/while` that always prompts once;
+   (c) `jumpSearch` throws `ArrayIndexOutOfBoundsException` on an empty array. (b) and (c)
+   must be fixed together — (c) is unreachable only because (b) crashes first.
 
 ## On presenting this repo
 

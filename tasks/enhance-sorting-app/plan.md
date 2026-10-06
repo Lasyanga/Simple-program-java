@@ -29,9 +29,22 @@ has to move before tests can run. Moving to the conventional `src/main/java` lay
 later (Tasks 17-18), once a green suite exists to catch a bad move. Costs one ugly line in
 `pom.xml` for a few tasks; buys an unbroken green suite throughout.
 
+**Tests are a sibling of `src`, never nested inside it.** `<testSourceDirectory>` is
+`Sorting and  Searching Algorithms/test`, *not* `src/test/java` as originally planned. Maven
+scans `<sourceDirectory>` recursively, so tests under `src/` are compiled into `target/classes`
+as main sources — the test class would ship in the jar. Verified: with tests in a sibling
+directory no test class appears in `target/classes`. Task 17 restores the conventional
+`src/main/java` + `src/test/java` pair, where the two are siblings again by construction.
+
+**Target Java 21, not 8.** The plan originally said Java 8 to preserve old-runtime
+compatibility. JDK 27 still accepts release 8 but warns that it is obsolete and will be
+removed, so 21 buys durability at the cost of needing a JDK 21+ to build. Decided 2026-10-06.
+
 **Fixes before refactor.** Tasks 3-5 are behavior fixes against the code as it exists. They are
 ordered first because they are small, independently verifiable, and would otherwise be lost in
-the noise of a six-class rewrite.
+the noise of a six-class rewrite. Task 1's execution pass widened three of them: the length-0
+crash joins Task 3, the `CANCEL_OPTION`-is-2 bug joins Task 11, and the empty-array guard joins
+Task 12. Folding them into the task that owns each file beats renumbering 22 ids.
 
 **One algorithm per task.** Tasks 6-12 each rewrite a single algorithm and add its test class in
 the same step. Six algorithms in one task would be an L by the sizing table, and a broken
