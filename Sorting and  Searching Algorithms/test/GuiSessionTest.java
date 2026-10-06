@@ -246,118 +246,118 @@ class GuiSessionTest {
     }
 
     /**
- * Searching for the value {@code 2} must actually search.
- *
- * <p>This is the {@code CANCEL_OPTION}-is-2 bug, and it was only ever visible in the dialog. The
- * old code compared the parsed search value against {@code JOptionPane.CANCEL_OPTION}, which is
- * 2, so typing 2 returned to the menu without searching. A unit test on the search function
- * could never have caught it: the search was correct, the wiring was not.
- */
-@Test
-void searchingForTwoSearchesRatherThanCancelling() throws Exception {
-    Session s = drive(new Plan(new String[]{
-            "length of your array", "3",
-            "Element[0]", "1",
-            "Element[1]", "2",
-            "Element[2]", "3",
-            "Length of your Array", "6",
-            "Enter the you want to Search", "2",
-            "2 is @ index: 1", "-",
-            "Enter the you want to Search", "!",
-            "Length of your Array", "9"}));
+     * Searching for the value {@code 2} must actually search.
+     *
+     * <p>This is the {@code CANCEL_OPTION}-is-2 bug, and it was only ever visible in the dialog. The
+     * old code compared the parsed search value against {@code JOptionPane.CANCEL_OPTION}, which is
+     * 2, so typing 2 returned to the menu without searching. A unit test on the search function
+     * could never have caught it: the search was correct, the wiring was not.
+     */
+    @Test
+    void searchingForTwoSearchesRatherThanCancelling() throws Exception {
+        Session s = drive(new Plan(new String[]{
+                "length of your array", "3",
+                "Element[0]", "1",
+                "Element[1]", "2",
+                "Element[2]", "3",
+                "Length of your Array", "6",
+                "Enter the you want to Search", "2",
+                "2 is @ index: 1", "-",
+                "Enter the you want to Search", "!",
+                "Length of your Array", "9"}));
 
-    assertRanCleanly(s);
-    assertContains(s, "2 is @ index: 1",
-            "searching for 2 must report the match, not silently cancel");
-}
+        assertRanCleanly(s);
+        assertContains(s, "2 is @ index: 1",
+                "searching for 2 must report the match, not silently cancel");
+    }
 
-/**
- * A value that is not in the array must say so, and every match must be listed.
- *
- * <p>Also pins the deliberate duplicate-key choice: searching 9 in {@code 9 1 9} reports both
- * indices, matching what the 2019 dialog did.
- */
-@Test
-void linearSearchReportsEveryMatchAndSaysWhenThereIsNone() throws Exception {
-    Session s = drive(new Plan(new String[]{
-            "length of your array", "3",
-            "Element[0]", "9",
-            "Element[1]", "1",
-            "Element[2]", "9",
-            "Length of your Array", "6",
-            "Enter the you want to Search", "9",
-            "9 is @ index: 0 2", "-",
-            "Enter the you want to Search", "4",
-            "is not found", "-",
-            "Enter the you want to Search", "!",
-            "Length of your Array", "9"}));
+    /**
+     * A value that is not in the array must say so, and every match must be listed.
+     *
+     * <p>Also pins the deliberate duplicate-key choice: searching 9 in {@code 9 1 9} reports both
+     * indices, matching what the 2019 dialog did.
+     */
+    @Test
+    void linearSearchReportsEveryMatchAndSaysWhenThereIsNone() throws Exception {
+        Session s = drive(new Plan(new String[]{
+                "length of your array", "3",
+                "Element[0]", "9",
+                "Element[1]", "1",
+                "Element[2]", "9",
+                "Length of your Array", "6",
+                "Enter the you want to Search", "9",
+                "9 is @ index: 0 2", "-",
+                "Enter the you want to Search", "4",
+                "is not found", "-",
+                "Enter the you want to Search", "!",
+                "Length of your Array", "9"}));
 
-    assertRanCleanly(s);
-    assertContains(s, "9 is @ index: 0 2",
-            "every matching index must be reported, not just the first");
-    assertContains(s, "Element 4 is not found.",
-            "an absent key must be reported plainly");
-}
+        assertRanCleanly(s);
+        assertContains(s, "9 is @ index: 0 2",
+                "every matching index must be reported, not just the first");
+        assertContains(s, "Element 4 is not found.",
+                "an absent key must be reported plainly");
+    }
 
-/**
- * Jump Search must actually search.
- *
- * <p>This option has never worked, in any build, since 2019. The dialog's loop condition called
- * {@code st.nextToken()} on a {@code StringTokenizer} that was declared and never assigned, so it
- * threw NPE on the first keystroke, and an empty {@code catch} swallowed it - the app appeared to
- * do nothing. So this asserts the option now reaches its search and reports an index.
- *
- * <p>It searches {@code Array.getsorted()}, so the dialog shows the array sorted regardless of
- * what was typed.
- */
-@Test
-void jumpSearchReturnsAnIndexAndComesBackToTheMenu() throws Exception {
-    Session s = drive(new Plan(new String[]{
-            "length of your array", "4",
-            "Element[0]", "42",
-            "Element[1]", "3",
-            "Element[2]", "17",
-            "Element[3]", "8",
-            "Length of your Array", "8",
-            "Enter the you want to Search", "17",
-            "Element @ index: 3", "-",
-            "Enter the you want to Search", "!",
-            "Length of your Array", "9"}));
+    /**
+     * Jump Search must actually search.
+     *
+     * <p>This option has never worked, in any build, since 2019. The dialog's loop condition called
+     * {@code st.nextToken()} on a {@code StringTokenizer} that was declared and never assigned, so it
+     * threw NPE on the first keystroke, and an empty {@code catch} swallowed it - the app appeared to
+     * do nothing. So this asserts the option now reaches its search and reports an index.
+     *
+     * <p>It searches {@code Array.getsorted()}, so the dialog shows the array sorted regardless of
+     * what was typed.
+     */
+    @Test
+    void jumpSearchReturnsAnIndexAndComesBackToTheMenu() throws Exception {
+        Session s = drive(new Plan(new String[]{
+                "length of your array", "4",
+                "Element[0]", "42",
+                "Element[1]", "3",
+                "Element[2]", "17",
+                "Element[3]", "8",
+                "Length of your Array", "8",
+                "Enter the you want to Search", "17",
+                "Element @ index: 3", "-",
+                "Enter the you want to Search", "!",
+                "Length of your Array", "9"}));
 
-    assertRanCleanly(s);
-    assertContains(s, "Element @ index: 3",
-            "option 8 must report the index of 17 in the sorted array");
-    assertDidNotCrash(s);
-    assertMenuShownTwice(s);
-}
+        assertRanCleanly(s);
+        assertContains(s, "Element @ index: 3",
+                "option 8 must report the index of 17 in the sorted array");
+        assertDidNotCrash(s);
+        assertMenuShownTwice(s);
+    }
 
-/**
- * Cancelling from the jump search dialog must reach the menu, not loop forever.
- *
- * <p>Specific risk once the NPE was fixed: {@code intOnly} reports a null input as invalid, so a
- * Cancel that only re-asked would leave the user trapped. This is the same trap
- * {@code LinearSearch} had.
- */
-@Test
-void cancellingJumpSearchReturnsToTheMenu() throws Exception {
-    Session s = drive(new Plan(new String[]{
-            "length of your array", "3",
-            "Element[0]", "5",
-            "Element[1]", "6",
-            "Element[2]", "7",
-            "Length of your Array", "8",
-            "Enter the you want to Search", "!",
-            "Length of your Array", "9"}));
+    /**
+     * Cancelling from the jump search dialog must reach the menu, not loop forever.
+     *
+     * <p>Specific risk once the NPE was fixed: {@code intOnly} reports a null input as invalid, so a
+     * Cancel that only re-asked would leave the user trapped. This is the same trap
+     * {@link LinearSearch} had.
+     */
+    @Test
+    void cancellingJumpSearchReturnsToTheMenu() throws Exception {
+        Session s = drive(new Plan(new String[]{
+                "length of your array", "3",
+                "Element[0]", "5",
+                "Element[1]", "6",
+                "Element[2]", "7",
+                "Length of your Array", "8",
+                "Enter the you want to Search", "!",
+                "Length of your Array", "9"}));
 
-    assertRanCleanly(s);
-    assertDidNotCrash(s);
-    assertEquals(7, s.turns(),
-            "the prompt must appear once per screen, then Cancel must leave");
-}
+        assertRanCleanly(s);
+        assertDidNotCrash(s);
+        assertEquals(7, s.turns(),
+                "the prompt must appear once per screen, then Cancel must leave");
+    }
 
-/** Option 7 is a stub. Pinning that down so nobody mistakes it for a working search. */
-@Test
-void exponentialSearchSaysItIsNotImplemented() throws Exception {
+    /** Option 7 is a stub. Pinning that down so nobody mistakes it for a working search. */
+    @Test
+    void exponentialSearchSaysItIsNotImplemented() throws Exception {
         Session s = drive(new Plan(new String[]{
                 "length of your array", "3",
                 "Element[0]", "1",

@@ -87,8 +87,8 @@ Nothing can be compiled or run today, so every later task's verification depends
 - Task 8 — Extract Selection Sort with tests
 - Task 9 — Extract Merge Sort with tests
 - Task 10 — Extract Quicksort with tests, fixing the `1..n` display
-- Task 11 — Extract Linear Search with tests
-- Task 12 — Extract Jump Search with tests, fixing the NPE
+- Task 11 — Extract Linear Search with tests — **done**: searching for `2` no longer cancels, and the search is pure
+- Task 12 — Extract Jump Search with tests, fixing the NPE — **done**: option 8 works for the first time
 - Task 13 — Collapse the six dialog methods into one presenter
 
 ### Phase 3: Control flow and cleanup
@@ -110,12 +110,13 @@ Nothing can be compiled or run today, so every later task's verification depends
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| No JDK on this machine — nothing can be verified | Blocks every other task | Task 1 is first and alone; nothing else starts until `mvn -q test` runs |
-| Rewriting six working algorithms breaks one that was correct | High — the algorithms are the project's only real value | One algorithm per task (6-12), each with its test in the same task, so breakage surfaces immediately rather than at the end of the phase |
-| The GUI cannot be verified headlessly | Medium — a refactor could pass tests and still be broken on screen | Every GUI-touching task carries an explicit `Manual check`; no task may claim success on tests alone |
+| No JDK on this machine — nothing can be verified | Blocks every other task | Resolved in Task 1. Every task since has been verified by `mvn -q clean package` |
+| Rewriting six working algorithms breaks one that was correct | High — the algorithms are the project's only real value | **This happened.** Task 10's Quicksort was wrong in ~1 input in 5 and the task text asserted it was fine. Mitigation is now proven: verify the claim by execution *before* editing, and fuzz against an independent oracle rather than a reimplementation. Tasks 11-12 both did this |
+| The GUI cannot be verified headlessly | Medium — a refactor could pass tests and still be broken on screen | Largely resolved. `GuiDriver` + `GuiSessionTest` (17 tests) drive the real dialogs with no human. Residual: rendering legibility still needs a person |
 | The double space in `Sorting and  Searching Algorithms` breaks paths | Medium — quoting in shell, XML, and IDE import | Task 17 removes the directory entirely rather than working around it |
 | Task 13 is the only task touching seven files at once | Medium | It is the single checkpointed consolidation step, and it relocates strings without changing what the user sees |
 | Scope creep into rewriting the Swing presentation | Medium — the ask was tests, not a new UI | Tasks 6-12 change only what must change; Task 13 is the sole exception and its acceptance criteria forbid wording changes |
+| Two Maven builds running at once produce plausible-looking failures | Medium — cost a false regression scare mid-Task-11 | Never run `mvn clean package` concurrently, and never kill Java processes while one is in flight. Both runs that hit this are recorded as invalid; re-run serially |
 
 ## Open Questions
 
@@ -123,9 +124,11 @@ Nothing can be compiled or run today, so every later task's verification depends
   (Tasks 17-18). The alternative is keeping the odd directory name and pointing Maven's
   `<sourceDirectory>` at it permanently — less churn, but every future contributor inherits the
   quoting problem. Say so if you prefer the alternative; it removes two tasks.
-- **`JumpSearch`'s empty `catch` blocks are load-bearing.** Cancel currently works *because*
-  the NPE is swallowed. Task 12 replaces that with real cancel handling; it is the one place
-  where a cleanup can silently remove working behavior.
+- **`JumpSearch`'s empty `catch` blocks were load-bearing.** Cancel worked *because* the NPE was
+  swallowed. **Resolved in Task 12 (2026-10-07):** replaced with a real `input == null` guard, and
+  `GuiSessionTest.cancellingJumpSearchReturnsToTheMenu` now pins the behaviour. Worth keeping in
+  mind for Task 13, which touches the same dialogs — deleting an empty `catch` there would remove
+  working behaviour again, in a file nobody suspects.
 - **Whether to keep the queue demos at all.** They are unrelated to the project the repo is
   named for. Fixing and testing them (Tasks 4 and 21) is the conservative choice; deleting them
   is defensible and would remove two tasks.

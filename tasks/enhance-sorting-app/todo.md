@@ -6,7 +6,8 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**10 of 22 code complete. 120 tests, 0 failures, 10 suites. Nothing committed.**
+**12 of 22 code complete. 160 tests, 0 failures, 12 suites, verified by `mvn -q clean package`
+against HEAD. 10 commits on `main`, ahead of `origin/main`. Nothing pushed.**
 
 | # | Task | Status |
 |---|---|---|
@@ -20,10 +21,13 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 | 8 | Extract Selection Sort | done — GUI-verified |
 | 9 | Extract Merge Sort | done — GUI-verified |
 | 10 | Extract Quicksort | done — **also fixed a wrong algorithm** |
-| 11-22 | Linear Search onward | open |
+| 11 | Extract Linear Search | done — GUI-verified; **fixed a wrong behaviour** |
+| 12 | Extract Jump Search | done — GUI-verified; **option had never worked** |
+| 13-22 | Presenter onward | open |
 
-**All five sorts are now pure** (bubble, insertion, selection, merge, quick), all verified against
-`Arrays.sort`, all displayed through one helper. Then two searches.
+**All five sorts and both searches are now pure.** The sorts (bubble, insertion, selection, merge,
+quick) are verified against `Arrays.sort` and displayed through one helper; the searches are
+`linearSearch`/`linearSearchAll` and `jumpSearch`, each fuzzed against a brute-force oracle.
 
 **Task 10 found a wrong algorithm, not just a wrong dialog.** This task's own text said the
 partition and its bounds were correct. They were not: the sort failed ~1 input in 5, and the
@@ -31,10 +35,26 @@ display bug had been hiding it — the dialog never showed the real result. Root
 case, failure rates and the fix are in Task 10. Recorded as a correction in `CODE_REVIEW.md`,
 because the review document is what asserted the algorithm was fine.
 
-**The GUI is no longer manual-only.** `GuiDriver` + `GuiSessionTest` (13 tests) drive the real modal
+**Task 12's premise held where Task 10's did not.** It claimed `jumpSearch` was already correct, so
+it was verified by execution *before* being touched: 600,000 differential trials, zero wrong
+answers, duplicates and every length to 1,000,000. That made it an extraction to preserve rather
+than repair. Worth stating explicitly, because the same claim was false one task earlier — the
+lesson is to check, not to assume either way.
+
+**Task 11's premise was partly wrong too, in the other direction.** It called the
+`CANCEL_OPTION` comparison unreachable, reasoning that `parseInt(null)` throws first. It does not:
+the `do/while` exits only when `intOnly` is true, and `intOnly(null)` is false, so `input` is
+already non-null. The comparison was live, and was the sole reason searching for `2` did nothing.
+
+**The GUI is no longer manual-only.** `GuiDriver` + `GuiSessionTest` (17 tests) drive the real modal
 dialogs with no human: it enumerates `Window.getWindows()`, reads each dialog's labels, types and
 clicks. Each test forks a JVM because option 9 and Cancel call `System.exit(0)`. That closed the
-verification gap on Tasks 3 and 6-9, and Task 10 gained two cases from it.
+verification gap on Tasks 3 and 6-12.
+
+**One operational note, learned the hard way:** never run two `mvn clean package` concurrently, and
+never kill Java processes while one is in flight. Two builds sharing one `target/` produce
+plausible-looking failures — GUI suites reported 8 failures with empty transcripts (0 dialogs
+reached) while the pure suites passed in the same run. Those runs are invalid; re-run serially.
 
 **What automation did *not* settle:** whether the dialogs are pleasant to read. The driver reads
 a label's contents, never the rendered screen. Trace legibility stays a human judgement.
@@ -46,13 +66,16 @@ trace is readable once rendered, which was Merge Sort's whole acceptance criteri
 trace, not the old indented tangle"). `GuiDriver` proves the dialogs appear, in order, with the
 right text, and that control returns to the menu. Reading the screen is a person.
 
-The manual pass, accumulated:
+The manual pass, accumulated. Items marked *automated* were previously manual and are now covered by
+`GuiSessionTest`; the rest still need a person:
 
-- [ ] empty field at the length prompt reprompts instead of exiting
-- [ ] Cancel at the length, element and menu prompts leaves cleanly (no dialog loop)
-- [ ] array length `0` reprompts
-- [ ] Cancel in Linear Search returns to the menu rather than looping forever
-- [ ] menu options 1, 2, 3, 4 show a readable trace and return to the menu
+- [x] *automated* empty field at the length prompt reprompts instead of exiting
+- [x] *automated* Cancel at the length, element and menu prompts leaves cleanly (no dialog loop)
+- [x] *automated* array length `0` reprompts
+- [x] *automated* Cancel in Linear Search returns to the menu rather than looping forever
+- [x] *automated* Jump Search returns an index, and Cancel from its dialog reaches the menu
+- [ ] menu options 1, 2, 3, 4 show a **legible** trace and return to the menu — substance verified,
+      rendering not
 - [ ] `QueueJava` console: enqueue `capacity + 1`, dequeue from empty, enter size `0`
 
 Trace *strings* were verified for bubble, insertion and selection by driving the trace methods
@@ -64,9 +87,14 @@ Task 1's execution pass found three defects the original review had missed. Rath
 new ids, each went into the task that owns the file:
 
 - `JOptionPane.CANCEL_OPTION` is **2, not -1**, so searching for the value `2` silently cancels
-  → Task 11 (`LinearSearch.java:28`)
+  → Task 11 (`LinearSearch.java:28`). Note the companion claim that this line was *unreachable* was
+  itself wrong — see Task 11's correction
 - array length `0` crashed via the `do/while` that always prompts once → Task 3
 - `jumpSearch` throws on an empty array → Task 12 (defensive only, since Task 3 removed the path)
+
+**The pattern worth carrying forward:** two of these three arrived with a claim attached about their
+own reachability, and one of those claims was false. Verify reachability by execution before acting
+on it — the same discipline that found the wrong Quicksort, and the one that cleared `jumpSearch`.
 
 ---
 
@@ -694,7 +722,7 @@ a different reason (one per split, not one per element boundary).
 
 ## Task 11: Extract Linear Search with tests
 
-**Status:** open
+**Status:** done — verified by `LinearSearchTest` (20 tests) + `GuiSessionTest`; committed `952be84`
 
 **Description:** `linearSearch` becomes `public static int linearSearch(int[] input, int key)`
 returning the index or -1.
@@ -719,17 +747,47 @@ narrow to first-match and say so in the dialog. Also delete the unreachable
 `opt == JOptionPane.CANCEL_OPTION` check — `showInputDialog` returns `null` on cancel, and
 `Integer.parseInt(null)` throws before that comparison is ever reached.
 
+> **Partly wrong, and the wrong part matters.** The `CANCEL_OPTION` comparison was **not**
+> unreachable. The reasoning above — "`parseInt(null)` throws first" — does not apply, because the
+> `do/while` exits only when `intOnly(input)` is true, and `intOnly(null)` is **false**. So `input`
+> is already guaranteed non-null by the time `parseInt` runs, and the comparison was reached with a
+> real number. Verified by execution before changing anything: `CANCEL_OPTION == 2`,
+> `CLOSED_OPTION == -1`, and `2 == CANCEL_OPTION` is true. Treating this as dead code would have
+> left the bug live. `CODE_REVIEW.md` carried the same wrong claim.
+
+**Duplicates: report every match, and offer both.** `linearSearchAll` returns all indices in
+ascending order — the 2019 behaviour, kept because silently changing what a user sees is not a
+refactor's call. `linearSearch` returns the first match or -1, as the headline criterion asks.
+Naming both for what they do puts the policy in the API rather than in where the loop stopped.
+
+**Deleted, not repaired.** The fix for the cancel bug is the *removal* of the comparison, not a
+corrected version of it: `showInputDialog` signals cancellation by returning `null`, never by a
+value, so there is no correct form of `if (searched == CANCEL_OPTION)`.
+
+**Also deleted beyond the brief:** `Searching(int)` returned a value nothing could read — it opened
+a modal dialog *before* returning on a hit, so the caller got a string from a method that had
+already re-prompted the user. The static `position` string was rebuilt on every call, so a second
+search destroyed the first result.
+
 **Context:** `CODE_REVIEW.md §Architecture — the one structural problem`; `CODE_REVIEW.md §Dead code`
 
 **Acceptance criteria:**
-- [ ] `linearSearch` is static and pure
-- [ ] Duplicate-key behavior is a deliberate choice, documented in the dialog text
-- [ ] `LinearSearchTest` covers found, not-found, duplicates, empty input, and first/last position
+- [x] `linearSearch` is static and pure
+- [x] Duplicate-key behavior is a deliberate choice, documented in the dialog text
+- [x] `LinearSearchTest` covers found, not-found, duplicates, empty input, and first/last position
+      (20 tests, including integer bounds and an independent brute-force oracle)
 
 **Verification:**
-- [ ] Tests pass: `mvn -q test -Dtest=LinearSearchTest`
-- [ ] Tests pass: `mvn -q test`
-- [ ] Manual check: linear search reports the same matches as before, or the intentional change
+- [x] Tests pass: `mvn -q test -Dtest=LinearSearchTest` — 20 tests, 0 failures
+- [x] Tests pass: `mvn -q clean package` — 160 tests, 0 failures, 12 suites
+- [x] Covered automatically by `GuiSessionTest`, not by hand: searching for `2` reports
+      `2 is @ index: 1` instead of cancelling, and searching `9` in `{9,1,9}` reports
+      `9 is @ index: 0 2` plus a plain not-found message. **This bug was invisible to a unit test**
+      — the search function was always correct, the wiring was not.
+
+**Left for later tasks, deliberately:** `quiano` survives (Task 13 deletes it), and the re-prompt
+recursion at the end of `searching` stays (Task 14 rewrites `Menu()`). Half-fixing either now would
+leave the dialog worse than either endpoint.
 
 **Dependencies:** Task 6
 
@@ -743,7 +801,7 @@ narrow to first-match and say so in the dialog. Also delete the unreachable
 
 ## Task 12: Extract Jump Search with tests, fixing the NPE
 
-**Status:** open
+**Status:** done — verified by `JumpSearchTest` (16 tests) + `GuiSessionTest`; committed `151442a`
 
 **Description:** `jumpSearch(int[] input, int key)` is already a correct static method — the bug
 is the dialog around it. `JumpsearchGUI` calls `st.nextToken()` on a `StringTokenizer` that is
@@ -756,15 +814,30 @@ instead of crashing — so it must be replaced with real cancel handling, not ju
 **Context:** `CODE_REVIEW.md §Known defects`; `CODE_REVIEW.md §Dead code`
 
 **Acceptance criteria:**
-- [ ] `jumpSearch` is static and pure; the unused `st` and `inpt[]` fields are gone
-- [ ] **An empty input array returns -1 instead of throwing** — see below
-- [ ] The search dialog performs a real search on a sorted array and reports the index
-- [ ] Cancel returns to the menu; the empty `catch` is gone
-- [ ] `JumpSearchTest` covers found, not-found, key below range, key above range, single-element input, **and empty input**
+- [x] `jumpSearch` is static and pure; the unused `st` and `inpt[]` fields are gone
+- [x] **An empty input array returns -1 instead of throwing** — see below
+- [x] The search dialog performs a real search on a sorted array and reports the index
+- [x] Cancel returns to the menu; the empty `catch` is gone
+- [x] `JumpSearchTest` covers found, not-found, key below range, key above range, single-element
+      input, **and empty input** (16 tests, plus differential fuzz against a brute-force oracle)
 
 **The core is already correct — do not rewrite it.** Verified 2026-10-06 by differential
 testing against a brute-force reference: 8 of 8 cases pass (first, last, interior, both
 out-of-range directions, single-element). Only the empty case is missing a guard.
+
+> **Re-verified 2026-10-07 before touching the file, and this time at scale.** Task 10's identical
+> claim was false, so it was not taken on trust: **600,000 differential trials** against brute
+> force, over sorted arrays both strictly increasing and containing duplicates, and every length up
+> to 1,000,000. **Zero wrong answers.** So this was an extraction to *preserve*, not to repair, and
+> the fuzz cases exist to hold that behaviour steady — nothing had ever exercised this code, because
+> the dialog made it unreachable.
+>
+> A first run reported 21,359 failures. That was an invalid test: the arrays were shuffled without
+> being re-sorted, and jump search requires sorted input. Same class of error as the Task 10 round —
+> asserting from a test that does not hold up.
+
+**Duplicates resolve to the first match**, because the linear scan stops at the first element not
+less than the key. Asserted explicitly so it stays a decision rather than an accident.
 
 **Add an empty-array guard.** Line 59 evaluates `array[Math.min(step, len) - 1]`; with
 `len == 0` and `step == floor(sqrt(0)) == 0` that indexes `array[-1]` and throws
@@ -784,10 +857,17 @@ loop will re-prompt forever on Cancel exactly as `LinearSearch` did, so this tas
 own `input == null` guard.
 
 **Verification:**
-- [ ] Tests pass: `mvn -q test -Dtest=JumpSearchTest`
-- [ ] Tests pass: `mvn -q test`
-- [ ] Manual check: jump search actually returns an index — this option has never worked
-- [ ] Manual check: Cancel from the jump search dialog returns to the menu
+- [x] Tests pass: `mvn -q test -Dtest=JumpSearchTest` — 16 tests, 0 failures
+- [x] Tests pass: `mvn -q clean package` — 160 tests, 0 failures, 12 suites
+- [x] Covered automatically by `GuiSessionTest`, replacing two manual checks: option 8 reports
+      `Element @ index: 3` for `17` in the sorted array, and Cancel from the jump search dialog
+      reaches the menu. **The second one guards a trap the fix created:** `intOnly(null)` is false,
+      so a Cancel that merely re-asked would have trapped the user — exactly what `LinearSearch` did.
+- [x] Also removed: the never-assigned `st` and `inpt[]` fields, the static `len`/`step`/`index`,
+      and the prompt's `[element][interval]` hint, which is false — the code does `parseInt` on the
+      whole field.
+- [ ] *Human, not done:* whether option 8's result line is legible on screen. `GuiDriver` reads the
+      label's text, not the rendered window.
 
 **Dependencies:** Task 6, Task 5
 
@@ -813,10 +893,25 @@ what the user sees.
 - [ ] No algorithm class calls `JOptionPane` or references `Runner`
 - [ ] One `Presenter` owns all dialog construction
 - [ ] Dialog titles, wording, and message ordering are unchanged
+- [ ] `GuiSessionTest` still passes unchanged — this task relocates strings, so the transcripts are
+      the regression net. Re-word a message and the suite should fail
+
+**State as of 2026-10-07, entering this task:**
+- All seven algorithm/search classes are pure and tested. The five sorts go through
+  `Runner.showSortTrace`; `LinearSearch` and `JumpSearch` still each own their own dialog and the
+  never-assigned `quiano` field. **Those two are the ones this task collapses.**
+- Both search dialogs end in a **re-prompt recursion** (`searching` calls itself) that Tasks 11 and
+  12 deliberately left alone. Task 14 rewrites `Menu()` as a loop; if this task unrolls the
+  recursion too, say so and check the turn counts in `GuiSessionTest` still hold.
+- `JumpSearch` and `LinearSearch` both need a cancel-to-menu path. Task 14 turns the menu's
+  `System.exit(0)` cancel into a plain return, which changes what "cancel" means here — do not
+  pre-empt that.
 
 **Verification:**
 - [ ] Tests pass: `mvn -q test`
 - [ ] Build succeeds: `mvn -q clean package`
+- [ ] `GuiSessionTest` unchanged and green (17 tests) — this is the real check for a task whose
+      stated goal is "relocate strings without changing what the user sees"
 - [ ] Manual check: step through all nine menu options and diff the dialogs against the previous behavior
 
 **Dependencies:** Task 6, Task 7, Task 8, Task 9, Task 10, Task 11, Task 12
