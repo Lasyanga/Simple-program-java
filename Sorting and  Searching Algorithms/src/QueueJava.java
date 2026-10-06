@@ -62,9 +62,9 @@ public class QueueJava {
     	do{
     		System.out.print("Enter the size od queue: ");
         	input = sc.next();
-    	}while(!isInteger(input));
+    	}while(!Validator.isInt(input));
     	
-    	if(isInteger(input)){
+    	if(Validator.isInt(input)){
     		len = Integer.parseInt(input);
       if(len < 1){
           System.out.println("The size of the queue must be at least 1.");
@@ -79,7 +79,7 @@ public class QueueJava {
         	       do{
         	    	   System.out.print("Please input the corresponding number of your choose:");
             	       opt = sc.next();
-        	       }while(!isInteger(opt));
+        	       }while(!Validator.isInt(opt));
         	       
         	       switch(Integer.parseInt(opt)){
         	       case 1:
@@ -124,7 +124,7 @@ public class QueueJava {
                 		   x= 0;
                 		   System.exit(0);
                 	   }
-        	       }while(!isString(opt));
+        	       }while(!Validator.isLetters(opt));
         	       
         	}while(x == 1);
     	}
@@ -132,24 +132,4 @@ public class QueueJava {
     	
        
     }
-    private static boolean isString(String str){
-		for(int i = 0; i < str.length(); i++){
-			
-			if(!Character.isLetter(str.charAt(i))){
-				return false;
-			}
-			
-		}
-		return true;
-	}
-    private static boolean isInteger(String num){
-		for(int i = 0; i < num.length(); i++){
-			
-			if(!Character.isDigit(num.charAt(i))){
-				return false;
-			}
-			
-		}
-		return true;
-	}
 }

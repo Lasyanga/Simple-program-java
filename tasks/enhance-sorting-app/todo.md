@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**14 of 22 code complete. 171 tests, 0 failures, 13 suites, verified by `mvn -q clean package`.
+**15 of 22 code complete. 190 tests, 0 failures, 14 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -25,7 +25,8 @@ Nothing pushed.**
 | 12 | Extract Jump Search | done — GUI-verified; **option had never worked** |
 | 13 | One `Presenter` for all dialogs | done — enforced by `ArchitectureTest` |
 | 14 | Recursive `Menu()` → loop | done — no loop advances by recursion |
-| 15-22 | Cleanup, layout and polish | open |
+| 15 | Dead code + triplicated validators | done — **changed queue behaviour on purpose** |
+| 16-22 | Polish, layout and packaging | open |
 
 **All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
 no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
@@ -42,6 +43,10 @@ the recursive call never returned. The app now separates "the loop is over" (`Me
 "end the process" (`main` exits) — a distinction worth keeping, because returning from `main` costs
 about 1.3s of AWT auto-shutdown versus 7ms for `System.exit`. The two queue demos still call
 `System.exit`; they are out of scope until Task 21.
+
+**Task 15 found the drift the duplication had caused.** The three "identical" digit validators were
+not identical, and the two weakest accepted digits too large for an `int` — which crashed both queue
+demos. That is why its own acceptance criterion is left deliberately unticked.
 
 **All five sorts and both searches are now pure.** The sorts (bubble, insertion, selection, merge,
 quick) are verified against `Arrays.sort` and displayed through one helper; the searches are
@@ -1129,7 +1134,7 @@ artifact rather than the artifact being wrong:**
 
 ## Task 15: Remove dead code and the triplicated validators
 
-**Status:** open
+**Status:** done — verified by `ValidatorTest` (16 tests) + `ArchitectureTest` (13 tests)
 
 **Description:** Delete `SelectionSort`'s dead `arr` field (if Task 8 has not already), the
 commented-out demo block in `CircularQueue.main`, and collapse the three copies of the
@@ -1139,15 +1144,74 @@ shared helper that all three call. Confirm each item is genuinely unreferenced b
 
 **Context:** `CODE_REVIEW.md §Dead code`
 
+**THIS TASK CHANGES BEHAVIOUR, contradicting its own acceptance criterion** ("No behavior change in
+any of the three entrypoints"). Done deliberately and flagged rather than hidden: the three "identical"
+validators were not identical, and collapsing them fixes a live crash. See below.
+
+**The three copies had already drifted.** Measured by execution before anything was edited:
+
+| input | `intOnly` | the two `isInteger` copies |
+|---|---|---|
+| `""` | false | **true** — the loop never ran |
+| `null` | false | **NullPointerException** — no guard |
+| `"2147483648"` | false | **true** — no range check at all |
+
+**Only the third difference was reachable, and it was a crash in both queue demos.** They read
+their input with `Scanner.next()`, which accepts any run of digits, then handed it straight to
+`Integer.parseInt`. Driving `QueueJava.main` with `99999999999` before this task produced
+`NumberFormatException: For input string: "99999999999"`. This is the same overflow defect Task 3
+fixed in the sorting app, never carried across to the queues.
+
+The first two differences were unreachable — `Scanner.next()` skips whitespace and never returns
+`""` or `null` — but they are pinned in `ValidatorTest` anyway, since a validator that NPEs on its
+argument is a trap for whoever calls it next.
+
+**Verified after the change, not asserted.** Driving `QueueJava.main` with `99999999999` now prints
+the size prompt **twice** and then runs out of input, where before it printed once and threw. The
+same probe showed `CircularQueue.main` re-asking at its menu prompt — its crash was on the *menu
+option*, not the size.
+
+**`intOnly` is the survivor because Task 3 had already made it the strongest of the three.** Choosing
+the canonical behaviour is a decision, not an accident, so it is recorded in `Validator`'s javadoc
+rather than left to whichever copy a future reader happens to find first.
+
+**A fourth and fifth duplication the brief did not name.** Both queue classes also carried an
+identical private `isString` — a `Character.isLetter` loop behind their y/n questions. The brief's
+title says "validators" plural and its body listed only the digit one, so these were folded in too.
+Unlike the digit collapse this one is **behaviour-preserving**: the two copies were identical to each
+other. They did throw on null, which `Validator.isLetters` does not.
+
+**`Validator.isLetters("")` returns true, deliberately.** Both 2019 copies did the same, so preserving
+it changes nothing — but it looks like an oversight, since an empty answer is neither yes nor no. It
+is pinned by a test so that changing it later is a decision rather than a drive-by.
+
+**The rule is on the primitive, not the method name.** `ArchitectureTest` forbids `Character.isDigit`
+and `Character.isLetter` anywhere but `Validator`. Naming the three deleted methods would have been
+weaker: a fourth copy could satisfy the rule simply by picking a new name. Forbidding the primitive
+fails at the duplication instead of at the symptom — which is the thing that let the copies drift.
+
+**`SelectionSort.arr` needed no work**, as the brief's own "if Task 8 has not already" anticipated.
+Task 8 had removed it and left a javadoc note saying so. Confirmed rather than assumed.
+
+**`RunnerInputValidationTest` was retargeted, not weakened.** Its eight assertions moved from
+`Runner.intOnly` to `Validator.isInt` unchanged — same cases, same strength. The class keeps its name
+because those are the validator behaviours *the app's prompts* depend on; `ValidatorTest` covers the
+function itself, including the boundary cases the app never reaches.
+
 **Acceptance criteria:**
-- [ ] The three validator methods are replaced by one shared helper
-- [ ] `git grep` finds no remaining references to each deleted item
-- [ ] No behavior change in any of the three entrypoints
+- [x] The three validator methods are replaced by one shared helper — plus the two `isString` copies
+- [x] `git grep` finds no remaining references to each deleted item
+- [ ] ~~No behavior change in any of the three entrypoints~~ **deliberately not met for the two queue
+      demos.** Overflow input used to crash them and now re-asks. Every other input behaves exactly as
+      before. Recorded rather than ticked.
 
 **Verification:**
-- [ ] Tests pass: `mvn -q test`
-- [ ] Build succeeds: `mvn -q clean package`
-- [ ] Manual check: all three entrypoints still reject non-numeric input
+- [x] Tests pass: `mvn -q test -Dtest=ValidatorTest+ArchitectureTest` — red first
+- [x] Tests pass: `mvn -q clean package` — 190 tests, 0 failures, 14 suites
+- [x] Crash fix demonstrated by execution, before and after, on both queue entry points
+- [ ] Manual: the two queue consoles still reject non-numeric input. `QueueJava.main` calls
+      `System.exit(0)`, so it cannot be driven in-process and the console loop is not covered by the
+      suite — `Task 21` owns that.
 
 **Dependencies:** Task 14
 

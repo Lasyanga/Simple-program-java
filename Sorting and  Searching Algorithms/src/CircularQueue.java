@@ -88,7 +88,7 @@ public class CircularQueue {
         	       do{
         	    	   System.out.print("Please input the corresponding number of your choose:");
             	       opt = sc.next();
-        	       }while(!isInteger(opt));
+        	       }while(!Validator.isInt(opt));
         	       
         	       switch(Integer.parseInt(opt)){
         	       case 1:
@@ -133,49 +133,10 @@ public class CircularQueue {
                 		   x= 0;
                 		   System.exit(0);
                 	   }
-        	       }while(!isString(opt));
+        	       }while(!Validator.isLetters(opt));
         	       
         	}while(x == 1);
-        
 
-    	
-    	
-        /*CircularQueue cq = new CircularQueue();
-        //cq.dequeue();
-        cq.enqueue(5);
-        cq.enqueue(1);
-        cq.enqueue(2);
-        cq.enqueue(3);
-        cq.enqueue(4);
-        cq.enqueue(9);
 
-        cq.display();
-        
-        cq.dequeue();
-        
-        cq.display();*/
-        
-    }
-    	
-    	 private static boolean isString(String str){
-    			for(int i = 0; i < str.length(); i++){
-    				
-    				if(!Character.isLetter(str.charAt(i))){
-    					return false;
-    				}
-    				
-    			}
-    			return true;
-    		}
-    	    private static boolean isInteger(String num){
-    			for(int i = 0; i < num.length(); i++){
-    				
-    				if(!Character.isDigit(num.charAt(i))){
-    					return false;
-    				}
-    				
-    			}
-    			return true;
-    		}
-    
+    	}
 }

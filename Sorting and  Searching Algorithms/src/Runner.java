@@ -33,7 +33,7 @@ public class Runner {
 
 				// Cancel makes showInputDialog return null, and the digit validator
 				// used to throw on it. There is no screen above this prompt to go
-				// back to, so leave quietly instead of handing null to intOnly.
+				// back to, so leave quietly instead of handing null to Validator.isInt.
 				if(length == null){
 					return;
 				}
@@ -51,12 +51,12 @@ public class Runner {
 					if(insElem == null){
 						return;
 					}
-					if(intOnly(insElem)){
+					if(Validator.isInt(insElem)){
 						element = Integer.parseInt(insElem);
 						arr.setElement(count, element);
 						count++;
 					}
-				}while(!intOnly(insElem));
+				}while(!Validator.isInt(insElem));
 			}while(count < size);
 
 			arr.setCopy();
@@ -94,7 +94,7 @@ public class Runner {
 			if(input == null){
 				return;
 			}
-			if(intOnly(input)){
+			if(Validator.isInt(input)){
 				switch(Integer.parseInt(input)){
 				case 1:
 					showSortTrace("Bubble Sort", BubbleSort.bubbleSortTrace(arr.getCopy()),
@@ -212,7 +212,7 @@ public class Runner {
 	/**
 	 * Asks for a search key, re-asking until one is usable.
 	 *
-	 * <p>The validation loop lives here rather than in {@link Presenter} on purpose. {@code intOnly}
+	 * <p>The validation loop lives here rather than in {@link Presenter} on purpose. {@link Validator#isInt}
 	 * reports a null as invalid, so a cancel handled inside the loop would re-ask forever and trap the
 	 * user in the dialog — a bug this project shipped once already, in the same two searches. Null is
 	 * returned straight through instead.
@@ -226,7 +226,7 @@ public class Runner {
 	private static String askSearchKey(String title, String heading, String elements, String position){
 		while(true){
 			String reply = Presenter.askSearchKey(title, heading, elements, position);
-			if(reply == null || intOnly(reply)){
+			if(reply == null || Validator.isInt(reply)){
 				return reply;
 			}
 		}
@@ -247,28 +247,6 @@ public class Runner {
 		return out.toString();
 	}
 
-	public static boolean intOnly(String str){
-		if(str == null || str.isEmpty()){
-			return false;
-		}
-		for(int i = 0; i < str.length(); i++){
-			if(!Character.isDigit(str.charAt(i))){
-				return false;
-			}
-		}
-		try{
-			Integer.parseInt(str);
-			return true;
-		}catch(NumberFormatException e){
-			// More digits than an int can hold. Every caller hands this
-			// method's result straight to Integer.parseInt, so refusing
-			// the value here is what stops a long enough run of digits
-			// from throwing at the element prompt or the menu switch.
-			return false;
-		}
-	}
-
-
 	/**
 	 * Whether the text typed at the array-length prompt is usable.
 	 *
@@ -283,10 +261,10 @@ public class Runner {
 	 * @return true only for a bare run of digits denoting at least 1
 	 */
 	public static boolean isValidLength(String str){
-		if(!intOnly(str)){
+		if(!Validator.isInt(str)){
 			return false;
 		}
-		// intOnly already proved the string parses, so this cannot throw.
+		// Validator.isInt already proved the string parses, so this cannot throw.
 		return Integer.parseInt(str) >= 1;
 	}
 

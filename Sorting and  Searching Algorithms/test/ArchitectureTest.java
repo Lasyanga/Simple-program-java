@@ -420,6 +420,69 @@ private static String codeOnly(String java) {
         throw new AssertionError("unreachable");
     }
 
+    // ------------------------------------------------------------------
+    // Task 15: the digit validator exists in exactly one place
+    // ------------------------------------------------------------------
+
+    /**
+     * Only {@code Validator} may inspect digits.
+     *
+     * <p>The triplication this task removed was literally three copies of a
+     * {@code Character.isDigit} loop — {@code Runner.intOnly}, {@code QueueJava.isInteger} and
+     * {@code CircularQueue.isInteger}. Forbidding the primitive is a sharper rule than naming the
+     * methods, which a fourth copy could avoid by picking a new name, and it fails at the point of
+     * the duplication rather than at the point of the symptom.
+     *
+     * <p>Those copies had already drifted: two of them accepted an empty string and threw on null,
+     * and none of them range-checked, so both queue demos crashed on a large enough size. A test that
+     * named the three methods would not have caught the drift either; one that forbids the primitive
+     * cannot drift, because there is only one copy left.
+     */
+    @Test
+    void onlyTheValidatorInspectsDigits() {
+        List<String> offenders = new ArrayList<>();
+        for (Path file : javaSources()) {
+            if (file.getFileName().toString().equals("Validator.java")) {
+                continue;
+            }
+            if (codeOnly(read(file)).contains("Character.isDigit")) {
+                offenders.add(file.getFileName().toString());
+            }
+        }
+        assertEquals(List.of(), offenders,
+                "these files re-implement the digit check instead of calling Validator.isInt,"
+                        + " which is how the three copies drifted apart in the first place");
+    }
+
+    /**
+     * The same rule for the y/n answer check, which was duplicated too.
+     *
+     * <p>Not named in the Task 15 brief, which listed only the digit validator — but both queue
+     * classes carried an identical private {@code isString}, the brief's own wording is "the
+     * triplicated validators" plural, and {@link #onlyTheValidatorInspectsDigits()} would otherwise
+     * leave half the duplication standing.
+     */
+    @Test
+    void onlyTheValidatorInspectsLetters() {
+        List<String> offenders = new ArrayList<>();
+        for (Path file : javaSources()) {
+            if (file.getFileName().toString().equals("Validator.java")) {
+                continue;
+            }
+            if (codeOnly(read(file)).contains("Character.isLetter")) {
+                offenders.add(file.getFileName().toString());
+            }
+        }
+        assertEquals(List.of(), offenders,
+                "these files re-implement the letter check instead of calling Validator.isLetters");
+    }
+
+    @Test
+    void theValidatorExists() {
+        assertTrue(Files.isRegularFile(sourceDir().resolve("Validator.java")),
+                "Task 15 creates Validator.java as the single home for the digit check");
+    }
+
     private static Class<?> load(String name) {
         try {
             return Class.forName(name);
