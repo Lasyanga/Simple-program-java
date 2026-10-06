@@ -1,8 +1,8 @@
 # Compiled Java output
 *.class
 
-# Build directories (none of these are used today - no build tool in this repo,
-# sources are compiled straight to bin/ with javac)
+# Build directories. Maven (pom.xml) writes to target/; bin/ is the old
+# javac output from before the build file existed and is no longer produced.
 bin/
 out/
 target/

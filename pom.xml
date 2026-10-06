@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.github.lasyanga</groupId>
+  <artifactId>simple-program-java</artifactId>
+  <version>2.0.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>Sorting and Searching Algorithms</name>
+  <description>
+    A Swing demonstration of five sorting and two searching algorithms.
+    Original 2019 college submission; see the v1.0.0 tag for the pre-modernization state.
+  </description>
+
+  <properties>
+    <!-- Java 21: the current LTS. Avoids the "source value 8 is obsolete" warning
+         that JDK 27 emits when compiling at release 8, and stays buildable for years. -->
+    <maven.compiler.release>21</maven.compiler.release>
+    <!-- Pinned explicitly: sources are pure ASCII today, but the default platform
+         encoding on Windows is Cp1252, which would silently mangle any non-ASCII
+         character added later. -->
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <junit.version>5.11.4</junit.version>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <!-- Temporary layout, replaced in Task 17 once a green suite exists to catch a bad move.
+         The source directory name contains a double space; that is legal in XML but is
+         exactly the kind of wart this override exists to contain. -->
+    <sourceDirectory>Sorting and  Searching Algorithms/src</sourceDirectory>
+    <!-- Must NOT live under <sourceDirectory>. Maven scans the source directory
+         recursively, so tests nested inside src/ would be compiled as main sources. -->
+    <testSourceDirectory>Sorting and  Searching Algorithms/test</testSourceDirectory>
+
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.13.0</version>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.5.2</version>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
