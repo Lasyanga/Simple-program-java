@@ -245,9 +245,63 @@ class GuiSessionTest {
                 "no dialog may report a 1..n countdown");
     }
 
-    /** Option 7 is a stub. Pinning that down so nobody mistakes it for a working search. */
-    @Test
-    void exponentialSearchSaysItIsNotImplemented() throws Exception {
+    /**
+ * Searching for the value {@code 2} must actually search.
+ *
+ * <p>This is the {@code CANCEL_OPTION}-is-2 bug, and it was only ever visible in the dialog. The
+ * old code compared the parsed search value against {@code JOptionPane.CANCEL_OPTION}, which is
+ * 2, so typing 2 returned to the menu without searching. A unit test on the search function
+ * could never have caught it: the search was correct, the wiring was not.
+ */
+@Test
+void searchingForTwoSearchesRatherThanCancelling() throws Exception {
+    Session s = drive(new Plan(new String[]{
+            "length of your array", "3",
+            "Element[0]", "1",
+            "Element[1]", "2",
+            "Element[2]", "3",
+            "Length of your Array", "6",
+            "Enter the you want to Search", "2",
+            "2 is @ index: 1", "-",
+            "Enter the you want to Search", "!",
+            "Length of your Array", "9"}));
+
+    assertRanCleanly(s);
+    assertContains(s, "2 is @ index: 1",
+            "searching for 2 must report the match, not silently cancel");
+}
+
+/**
+ * A value that is not in the array must say so, and every match must be listed.
+ *
+ * <p>Also pins the deliberate duplicate-key choice: searching 9 in {@code 9 1 9} reports both
+ * indices, matching what the 2019 dialog did.
+ */
+@Test
+void linearSearchReportsEveryMatchAndSaysWhenThereIsNone() throws Exception {
+    Session s = drive(new Plan(new String[]{
+            "length of your array", "3",
+            "Element[0]", "9",
+            "Element[1]", "1",
+            "Element[2]", "9",
+            "Length of your Array", "6",
+            "Enter the you want to Search", "9",
+            "9 is @ index: 0 2", "-",
+            "Enter the you want to Search", "4",
+            "is not found", "-",
+            "Enter the you want to Search", "!",
+            "Length of your Array", "9"}));
+
+    assertRanCleanly(s);
+    assertContains(s, "9 is @ index: 0 2",
+            "every matching index must be reported, not just the first");
+    assertContains(s, "Element 4 is not found.",
+            "an absent key must be reported plainly");
+}
+
+/** Option 7 is a stub. Pinning that down so nobody mistakes it for a working search. */
+@Test
+void exponentialSearchSaysItIsNotImplemented() throws Exception {
         Session s = drive(new Plan(new String[]{
                 "length of your array", "3",
                 "Element[0]", "1",
