@@ -13,7 +13,7 @@
  * trace records one state per completed merge, which shows the merge tree unfolding bottom-up
  * and is far more legible than the indentation it replaces.
  */
-public class MergeSort {
+public final class MergeSort {
 
 	private MergeSort(){
 		// Not instantiable: every entry point is static.

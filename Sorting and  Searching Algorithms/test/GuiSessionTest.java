@@ -309,6 +309,16 @@ class GuiSessionTest {
      *
      * <p>It searches {@code Array.getsorted()}, so the dialog shows the array sorted regardless of
      * what was typed.
+     *
+     * <p><b>The index here is 2, and getting that wrong was instructive.</b> This test originally
+     * expected {@code Element @ index: 3} for 17, having counted from the typed order
+     * {@code 42 3 17 8}. The sorted copy is {@code 3 8 17 42}, so 17 is at index 2 and the app was
+     * right. The wrong expectation passed anyway: the driver records a mismatch as
+     * {@code "07 | !! MISMATCH expected a dialog containing [Element @ index: 3] | title=Jump Search"},
+     * so {@code assertContains} found the expected fragment <i>inside the error message</i>. The test
+     * was green because of the failure it should have failed on. {@link GuiDriver#isMarkerLine} now
+     * catches embedded mismatches, and {@link #assertContains} ignores marker lines so that nothing
+     * can be satisfied by one again.
      */
     @Test
     void jumpSearchReturnsAnIndexAndComesBackToTheMenu() throws Exception {
@@ -320,13 +330,18 @@ class GuiSessionTest {
                 "Element[3]", "8",
                 "Length of your Array", "8",
                 "Enter the you want to Search", "17",
-                "Element @ index: 3", "-",
+                "Element @ index: 2", "-",
                 "Enter the you want to Search", "!",
                 "Length of your Array", "9"}));
 
         assertRanCleanly(s);
-        assertContains(s, "Element @ index: 3",
-                "option 8 must report the index of 17 in the sorted array");
+        assertContains(s, "Element @ index: 2",
+                "option 8 must report the index of 17 in the sorted array 3 8 17 42");
+        // The heading and the window title are separate arguments to Presenter.askSearchKey, so
+        // ("Jump Search", "Unsorted", ...) compiles and shows a plausible dialog. Nothing else
+        // catches the swap: the assertions above read the result line, which is the same either way.
+        assertContains(s, "Sorted element:",
+                "jump search must label the array Sorted, since it searches the sorted copy");
         assertDidNotCrash(s);
         assertMenuShownTwice(s);
     }
@@ -497,8 +512,21 @@ class GuiSessionTest {
         }
     }
 
+    /**
+     * Asserts the transcript contains {@code needle}, ignoring the driver's failure markers.
+     *
+     * <p>The filtering is not cosmetic. A mismatch is recorded as
+     * {@code "07 | !! MISMATCH expected a dialog containing [NEEDLE] | title=..."} — it echoes the
+     * expected fragment back into the transcript. A plain {@code contains} would therefore find the
+     * needle <i>inside the record of it not being there</i>, which is how
+     * {@link #jumpSearchReturnsAnIndexAndComesBackToTheMenu} passed while asserting the wrong index
+     * for a month of task work. Marker lines are the driver's complaints, never evidence.
+     */
     private static void assertContains(Session session, String needle, String why) {
-        assertTrue(session.transcript().contains(needle),
+        String evidence = String.join("\n", session.transcript().lines()
+                .filter(line -> !GuiDriver.isMarkerLine(line))
+                .toList());
+        assertTrue(evidence.contains(needle),
                 why + "\nexpected to find: " + needle
                         + "\nfull transcript:\n" + session.transcript());
     }
@@ -535,5 +563,80 @@ class GuiSessionTest {
                 "the dialog must show the array that was typed in");
         assertContains(session, "Sorted Element: [1, 3, 5, 7, 9]",
                 "the dialog must report the sorted array");
+    }
+
+    /**
+     * Re-entering a search must not show the previous search's result.
+     *
+     * <p>The one behaviour change in Task 13, pinned deliberately. {@code position} used to be a
+     * {@code static} field on {@code LinearSearch} and {@code JumpSearch}, so cancelling out of a
+     * search and picking the same option again left the old result sitting above the input line —
+     * a stale result for a search the user had not performed this time. It is a local now, so the
+     * second visit starts blank.
+     *
+     * <p>Asserted positionally rather than with {@code assertFalse(contains(...))}: the first search's
+     * result <i>is</i> in the transcript, and it must stay there. Only the second prompt may lack it.
+     */
+    @Test
+    void reenteringLinearSearchDoesNotShowThePreviousResult() throws Exception {
+        Session s = drive(new Plan(new String[]{
+                "length of your array", "3",
+                "Element[0]", "1",
+                "Element[1]", "2",
+                "Element[2]", "3",
+                "Length of your Array", "6",
+                "Enter the you want to Search", "2",
+                "2 is @ index: 1", "-",
+                "Enter the you want to Search", "!",
+                "Length of your Array", "6",
+                "Enter the you want to Search", "!",
+                "Length of your Array", "9"}));
+
+        assertRanCleanly(s);
+        assertDidNotCrash(s);
+
+        // Driver turns are zero-based and each pair in the script is one turn. All eleven:
+        //   0-3 enter the array, 4 menu, 5 first search, 6 result, 7 cancel, 8 menu,
+        //   9 second search, 10 menu and Exit.
+        assertTurnContains(s, 6, "2 is @ index: 1",
+                "the first search's result must still be reported - otherwise the check below"
+                        + " would pass simply because the result never appeared");
+        assertTurnContains(s, 9, "Unsorted element:  1 2 3",
+                "the search dialog must still show the array it is searching");
+        assertTurnDoesNotContain(s, 9, "2 is @ index: 1",
+                "a re-entered search must not inherit the previous search's result");
+    }
+
+    /** What {@code GuiDriver} puts in front of each recorded message line. */
+    private static final String MESSAGE_PREFIX = "    | ";
+
+    /** The message text of one scripted turn, as the driver recorded it. */
+    private static String turnText(Session session, int turn) {
+        StringBuilder out = new StringBuilder();
+        boolean inside = false;
+        for (String line : session.transcript().lines().toList()) {
+            if (line.matches("\\d\\d \\| .*")) {
+                inside = Integer.parseInt(line.substring(0, 2)) == turn;
+                continue;
+            }
+            if (inside && line.startsWith(MESSAGE_PREFIX)) {
+                out.append(line.substring(MESSAGE_PREFIX.length())).append('\n');
+            }
+        }
+        return out.toString();
+    }
+
+    private static void assertTurnContains(Session session, int turn, String needle, String why) {
+        String text = turnText(session, turn);
+        assertTrue(text.contains(needle),
+                why + "\nturn " + turn + " was:\n" + text + "\nfull transcript:\n"
+                        + session.transcript());
+    }
+
+    private static void assertTurnDoesNotContain(Session session, int turn, String needle, String why) {
+        String text = turnText(session, turn);
+        assertFalse(text.contains(needle),
+                why + "\nturn " + turn + " was:\n" + text + "\nfull transcript:\n"
+                        + session.transcript());
     }
 }

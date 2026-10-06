@@ -89,7 +89,7 @@ Nothing can be compiled or run today, so every later task's verification depends
 - Task 10 — Extract Quicksort with tests, fixing the `1..n` display
 - Task 11 — Extract Linear Search with tests — **done**: searching for `2` no longer cancels, and the search is pure
 - Task 12 — Extract Jump Search with tests, fixing the NPE — **done**: option 8 works for the first time
-- Task 13 — Collapse the six dialog methods into one presenter
+- Task 13 — Collapse the six dialog methods into one presenter — **done**: one file owns every `JOptionPane` call, enforced by `ArchitectureTest`
 
 ### Phase 3: Control flow and cleanup
 

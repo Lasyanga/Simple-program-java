@@ -6,8 +6,8 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**12 of 22 code complete. 160 tests, 0 failures, 12 suites, verified by `mvn -q clean package`
-against HEAD. 10 commits on `main`, ahead of `origin/main`. Nothing pushed.**
+**13 of 22 code complete. 168 tests, 0 failures, 13 suites, verified by `mvn -q clean package`.
+Nothing pushed.**
 
 | # | Task | Status |
 |---|---|---|
@@ -23,7 +23,17 @@ against HEAD. 10 commits on `main`, ahead of `origin/main`. Nothing pushed.**
 | 10 | Extract Quicksort | done — **also fixed a wrong algorithm** |
 | 11 | Extract Linear Search | done — GUI-verified; **fixed a wrong behaviour** |
 | 12 | Extract Jump Search | done — GUI-verified; **option had never worked** |
-| 13-22 | Presenter onward | open |
+| 13 | One `Presenter` for all dialogs | done — enforced by `ArchitectureTest` |
+| 14-22 | Control flow and polish | open |
+
+**All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
+no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
+fails the build if a second one appears — so the 2019 coupling cannot quietly return.
+
+**Task 13 was the structural change the whole plan was building toward.** Until now the searches
+could not be tested without a display, because each class both computed and prompted. Splitting
+"build a dialog" (`Presenter`) from "decide what happens next" (`Runner`) is what leaves every
+algorithm reachable from a plain unit test.
 
 **All five sorts and both searches are now pure.** The sorts (bubble, insertion, selection, merge,
 quick) are verified against `Arrays.sort` and displayed through one helper; the searches are
@@ -881,7 +891,7 @@ own `input == null` guard.
 
 ## Task 13: Collapse the six dialog methods into one presenter
 
-**Status:** open
+**Status:** done — verified by `ArchitectureTest` (6 tests) + `GuiSessionTest` unchanged
 
 **Description:** After Tasks 6-12 each algorithm is pure, leaving six near-identical
 `xxxGUI()` / `getXProcess()` pairs that only differ in title strings. Move every `JOptionPane`
@@ -890,29 +900,94 @@ only task permitted to touch every dialog, and it relocates existing strings wit
 what the user sees.
 
 **Acceptance criteria:**
-- [ ] No algorithm class calls `JOptionPane` or references `Runner`
-- [ ] One `Presenter` owns all dialog construction
-- [ ] Dialog titles, wording, and message ordering are unchanged
-- [ ] `GuiSessionTest` still passes unchanged — this task relocates strings, so the transcripts are
-      the regression net. Re-word a message and the suite should fail
+- [x] No algorithm class calls `JOptionPane` or references `Runner`
+- [x] One `Presenter` owns all dialog construction
+- [x] Dialog titles, wording, and message ordering are unchanged
+- [x] The 17 pre-existing transcript assertions pass **unchanged** — this task relocates strings, so
+      the transcripts are the regression net. (The file itself grew by one new test; the wording here
+      is deliberate, since "GuiSessionTest unchanged" is falsified by the change that satisfies it.)
 
-**State as of 2026-10-07, entering this task:**
-- All seven algorithm/search classes are pure and tested. The five sorts go through
-  `Runner.showSortTrace`; `LinearSearch` and `JumpSearch` still each own their own dialog and the
-  never-assigned `quiano` field. **Those two are the ones this task collapses.**
-- Both search dialogs end in a **re-prompt recursion** (`searching` calls itself) that Tasks 11 and
-  12 deliberately left alone. Task 14 rewrites `Menu()` as a loop; if this task unrolls the
-  recursion too, say so and check the turn counts in `GuiSessionTest` still hold.
-- `JumpSearch` and `LinearSearch` both need a cancel-to-menu path. Task 14 turns the menu's
-  `System.exit(0)` cancel into a plain return, which changes what "cancel" means here — do not
-  pre-empt that.
+**Independent review found six defects in the change; all are fixed here.** Recorded because three of
+them were mine and one had been hiding a wrong test since Task 12:
+
+- **`ArchitectureTest` did not enforce the invariant it existed for.** It proved no algorithm file
+  contains the token `JOptionPane`, but `Presenter`'s methods are all public, so a class could
+  rebuild the 2019 dialog — a `searching(int[])` looping on `Presenter.askSearchKey` — and pass
+  every other test. Added `noAlgorithmClassReferencesPresenter`.
+- **`assertRanCleanly` never checked that dialogs *matched*,** only that they arrived and the count
+  was right, despite its name and doc claiming otherwise. The mismatch is recorded embedded in the
+  turn header (`04 | !! MISMATCH ...`), which `startsWith("!! ")` never saw.
+- **That gap was concealing a wrong assertion of mine.** `jumpSearchReturnsAnIndexAndComesBackToTheMenu`
+  expected `Element @ index: 3` for 17; the sorted copy is `3 8 17 42`, so the answer is **2** and the
+  app was right. The test passed because the mismatch line echoes the expected fragment back into the
+  transcript, so `assertContains` found it *inside the record of it being absent*. Both fixed: the
+  driver now detects embedded mismatches, `assertContains` ignores marker lines, and the expectation
+  is 2.
+- **`Presenter` claimed "never loops"** while formatting traces with two nested loops. Reworded to
+  what is actually true — no branching, no validation.
+- **`noAlgorithmClassHoldsStaticState` overclaimed and passed vacuously.** `static final` freezes the
+  reference, not the contents, and all seven classes declare zero fields. Renamed and its javadoc now
+  states the limit.
+- **`Runner.java` lost its trailing newline,** and its CRLF→LF conversion inflates the diff from 186
+  to 504 lines. The newline is restored. The line-ending conversion is **Task 22's job**, not this
+  task's: the repo has no `.gitattributes` and its files are already mixed, so normalising repo-wide
+  belongs in the commit that adds one. Do not do it piecemeal here.
 
 **Verification:**
-- [ ] Tests pass: `mvn -q test`
-- [ ] Build succeeds: `mvn -q clean package`
-- [ ] `GuiSessionTest` unchanged and green (17 tests) — this is the real check for a task whose
-      stated goal is "relocate strings without changing what the user sees"
-- [ ] Manual check: step through all nine menu options and diff the dialogs against the previous behavior
+- [x] Tests pass: `mvn -q test -Dtest=ArchitectureTest` — 7 tests, 0 failures, red first
+- [x] Tests pass: `mvn -q clean package` — 168 tests, 0 failures, 13 suites, verified against the
+      working tree (nothing was committed while these claims were written)
+- [x] String fidelity checked three ways, not one: source literals, the compiled **constant pool**
+      (`javap -v`), and **20 driven transcripts** diffed between HEAD and this change. 19 identical;
+      the twentieth differs by exactly the documented `position` reset and nothing else. This closes
+      the gap noted below, which source reading alone could not.
+- [x] The loop/recursion change confirmed equivalent on all four input paths — valid key, invalid
+      key, overflow, Cancel — by transcript diff, not by reading. Also established that
+      `quiano.Menu()` on a never-assigned field was a **silent no-op**, not an NPE: the bytecode is
+      `getstatic` then `invokestatic`, and `invokestatic` discards the receiver. Deleting it changed
+      nothing.
+- [ ] Manual check: step through all nine menu options and diff the dialogs against the previous
+      behaviour. **Narrowed but not eliminated** by the constant-pool and transcript diffs above:
+      trailing whitespace and blank lines inside dialog text remain invisible, because `GuiDriver`
+      strips both before recording.
+
+**What "one presenter" was allowed to include, decided rather than assumed.** The brief said the
+Presenter "takes a title and a trace and shows it". Two searches do not fit that shape — they need a
+prompt they re-ask, and their result depends on a search the Presenter would have to know about.
+So the split drawn instead is **Presenter builds dialogs, `Runner` controls flow**. `Presenter` has
+no loop, no validation and no branching; `askSearchKey` returns whatever was typed. That matters
+because `intOnly(null)` is false, so a cancel handled *inside* a Presenter loop would re-ask forever
+— a trap this project already shipped twice, in these same two searches.
+
+**One behaviour change, and it is the point of removing the statics.** `position` used to be a
+`static` field, so cancelling out of a search and re-picking the same option left the *previous*
+result above the input line — a result for a search the user had not just performed. It is a local
+now, so a re-entered search starts blank. This is the only user-visible difference in the task, and
+`reenteringLinearSearchDoesNotShowThePreviousResult` pins it. It asserts **positionally**: the first
+result must stay in the transcript and only the second prompt may lack it, so the test cannot pass by
+the result never appearing at all.
+
+**The re-prompt recursion was unrolled here after all, deliberately.** Tasks 11 and 12 left both
+search dialogs recursing; Task 13 could not move a dialog without moving the loop around it. A loop
+and a tail call produce the same dialogs in the same order, so every transcript is unchanged — but
+the stack no longer grows one frame per search. `cancellingJumpSearchReturnsToTheMenu` asserts an
+exact turn count of 7 and still passes, which is the evidence for that.
+
+**Rule added beyond the brief: the seven algorithm classes must be `final`.** The five sorts already
+had private constructors from Task 6 but were still subclassable. One word per file.
+
+**`ArchitectureTest` makes these criteria executable** rather than leaving them to review. It reads
+source text, because reflection cannot answer "does this class open a dialog" —
+`JOptionPane.showInputDialog` returns a `String` like any other call, so a dialog-driven search class
+looks identical to a pure one once compiled. Comments are stripped before matching: `LinearSearch`
+quotes the deleted `CANCEL_OPTION` line and `JumpSearch` quotes the `StringTokenizer` NPE, so a grep
+that could not tell documentation from code would fail on the explanation of the fix. It resolves the
+source tree from `user.dir` and **fails loudly if Task 17 moves it**, rather than skipping.
+
+**Verification:**
+- [x] Tests pass: `mvn -q clean package` — see the Progress ledger
+- [x] The 17 pre-existing transcript assertions all still pass, unchanged — the real check for a task
+      whose stated goal is "relocate strings without changing what the user sees"
 
 **Dependencies:** Task 6, Task 7, Task 8, Task 9, Task 10, Task 11, Task 12
 

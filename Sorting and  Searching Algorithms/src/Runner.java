@@ -1,29 +1,36 @@
-import javax.swing.JOptionPane;
-
-
+/**
+ * The application's entry point and its control flow.
+ *
+ * <p>Until Task 13 this class, {@link LinearSearch} and {@link JumpSearch} each opened their own
+ * dialogs. Three files meant three slightly different ways to prompt, and a search could not be
+ * tested without a display. Every {@code JOptionPane} call now lives in {@link Presenter}; this
+ * class decides <i>when</i> to show one, and {@link Presenter} decides only what it looks like.
+ *
+ * <p>Two control-flow oddities here are deliberate leftovers, both scheduled for Task 14:
+ * <ul>
+ *   <li>{@link #Menu()} is recursive — it re-invokes itself at the bottom of its loop and again in
+ *       the {@code default} branch — so the menu advances by nesting rather than iterating.
+ *   <li>Cancel at the menu calls {@link System#exit(int)} to match option 9, because there is
+ *       nowhere to return to. Once the recursion becomes a loop this becomes a plain return.
+ * </ul>
+ * Neither was touched here: Task 14 rewrites both together, and changing either on its own would
+ * leave the menu harder to follow than either endpoint.
+ */
 public class Runner {
-	private static String length = " ", insElem, input ="";;
-	private static int size , count = 0, element;
+
+	private static String length = " ", insElem, input = "";
+	private static int size, count = 0, element;
 	private static Array arr;
-	private static LinearSearch linearSearch;
-	private static JumpSearch jump;
-	
+
 	public Runner(){
 		GUI();
 	}
-	
-	
+
 	public void GUI(){
 		try{
 			do{
-				length = JOptionPane.showInputDialog(null, "Professor: Nikka Salvador\n" +
-						"Submitted By: Herminigildo Jr. Quiano\n\n" +
-						"Welcome!!\n" +
-						"This program show diff.\n" +
-						"Sorting and Searching Method.\n\n" +
-						"Please input the length of your array:",
-						"Sorting and Searching", 1);
-				
+				length = Presenter.askLength();
+
 				// Cancel makes showInputDialog return null, and the digit validator
 				// used to throw on it. There is no screen above this prompt to go
 				// back to, so leave quietly instead of handing null to intOnly.
@@ -31,15 +38,14 @@ public class Runner {
 					return;
 				}
 			}while(!isValidLength(length));
-			
+
 			size = Integer.parseInt(length);
 			arr = new Array(size);
-			
+
 			do{
 				do{
-					insElem = JOptionPane.showInputDialog(null, 
-							"Please insert the Element["+count+"]:",
-							"Sorting and Searching",1);
+					insElem = Presenter.askElement(count);
+
 					// Cancel here abandons a half-filled array, so leave rather than
 					// loop forever on a prompt the validator will never accept.
 					if(insElem == null){
@@ -52,92 +58,179 @@ public class Runner {
 					}
 				}while(!intOnly(insElem));
 			}while(count < size);
-			
+
 			arr.setCopy();
 			Menu();
 		}catch(Exception e){
 			System.out.print(e);
-			JOptionPane.showMessageDialog(null, "Bye.. bye..\n(@~__~)", "Message from Cowboy",1);
+			Presenter.showGoodbye();
 		}
-		
 	}
-	
+
 	public static void Menu(){
-	
+
 		do{
-			input = JOptionPane.showInputDialog(null, "Length of your Array: "+arr.getLength()+"\n" +
-					"Element you input: "+arr.getElement()+"\n\n" +
-							"[1]Bubble Sort\n" +
-							"[2]Insertion Sort\n" +
-							"[3]Selection Sort\n" +
-							"[4]Merge Sort\n" +
-							"[5]Quick\n" +
-							"[6]Linear Search\n" +
-							"[7]Exponential Search\n" +
-							"[8]Jump Search\n" +
-							"[9]Exit", "Menu", JOptionPane.INFORMATION_MESSAGE);
-			
-			
-				// Cancel makes showInputDialog return null. Without this check the
-				// validator says "invalid", the loop falls through to the recursive
-				// Menu() call at the bottom, and the prompt reappears forever, so the
-				// user could not leave. Exiting matches menu option 9; Task 14 replaces
-				// the recursion with a real loop, where this becomes a plain return.
-				if(input == null){
-					System.exit(0);
-				}
+			input = Presenter.askMenu(arr.getLength(), arr.getElement());
+
+			// Cancel makes showInputDialog return null. Without this check the
+			// validator says "invalid", the loop falls through to the recursive
+			// Menu() call at the bottom, and the prompt reappears forever, so the
+			// user could not leave. Exiting matches menu option 9; Task 14 replaces
+			// the recursion with a real loop, where this becomes a plain return.
+			if(input == null){
+				System.exit(0);
+			}
 			if(intOnly(input)){
 				switch(Integer.parseInt(input)){
 				case 1:
 					showSortTrace("Bubble Sort", BubbleSort.bubbleSortTrace(arr.getCopy()),
 							BubbleSort.bubbleSort(arr.getCopy()));
 					break;
-					
+
 				case 2:
 					showSortTrace("Insertion Sort", InsertionSort.insertionSortTrace(arr.getCopy()),
 							InsertionSort.insertionSort(arr.getCopy()));
 					break;
-					
+
 				case 3:
 					showSortTrace("Selection Sort", SelectionSort.selectionSortTrace(arr.getCopy()),
 							SelectionSort.selectionSort(arr.getCopy()));
 					break;
-					
+
 				case 4:
 					showSortTrace("Merge Sort", MergeSort.mergeSortTrace(arr.getCopy()),
 							MergeSort.mergeSort(arr.getCopy()));
 					break;
-					
+
 				case 5:
 					showSortTrace("Quick Sort", Quicksort.quickSortTrace(arr.getCopy()),
 							Quicksort.quickSort(arr.getCopy()));
 					break;
-					
-				case 6:;
-					linearSearch = new LinearSearch(arr.getCopy(), arr.getElement());
+
+				case 6:
+					searchLinear(arr.getCopy(), arr.getElement());
 					break;
-					
+
 				case 7:
-					JOptionPane.showMessageDialog(null, "Exponential Search is not implemented yet.",
-						"Message", 1);
+					Presenter.showNotImplemented();
 					break;
-				
+
 				case 8:
-					jump = new JumpSearch(arr.getsorted());
+					searchJump(arr.getsorted());
 					break;
-				
+
 				case 9:
 					System.exit(0);
 					break;
-					
-					default:
-						Menu();
+
+				default:
+					Menu();
 				}
 			}
 			Menu();
 		}while(!intOnly(input));
 	}
-	
+
+	/**
+	 * Repeatedly searches the array until the user leaves.
+	 *
+	 * <p>Was {@code LinearSearch.Searching(int)} before Task 13, and reached the search by recursion:
+	 * search, then call itself again to re-prompt. The recursion is now a loop. The visible sequence
+	 * of dialogs is identical either way — a loop and a tail call produce the same prompts in the same
+	 * order — but the stack no longer grows by one frame per search, which mattered here because a
+	 * user who searched fifty times would have recursed fifty times deep.
+	 *
+	 * @param array the values to search, as typed; never modified
+	 * @param typed the array as typed, for display only
+	 */
+	private static void searchLinear(int[] array, String typed){
+		String position = " ";
+		while(true){
+			String key = askSearchKey("Linear Search", "Unsorted", typed, position);
+
+			// Cancel. There is nowhere above this dialog to return to but the menu, and the
+			// caller's loop shows it again, so leaving the loop is the whole cancel path.
+			if(key == null){
+				return;
+			}
+
+			int search = Integer.parseInt(key);
+			int[] hits = LinearSearch.linearSearchAll(array, search);
+			if(hits.length == 0){
+				position = "Element " + search + " is not found.";
+			}else{
+				StringBuilder found = new StringBuilder();
+				for(int hit : hits){
+					found.append(hit).append(' ');
+				}
+				position = search + " is @ index: " + found.toString().stripTrailing();
+			}
+		}
+	}
+
+	/**
+	 * Repeatedly searches the sorted array until the user leaves. The loop counterpart of the
+	 * recursion {@code JumpSearch.searching(int)} used before Task 13.
+	 *
+	 * @param sorted the values to search, already sorted; never modified
+	 */
+	private static void searchJump(int[] sorted){
+		String sortedText = asElements(sorted);
+		String position = " ";
+		while(true){
+			String key = askSearchKey("Jump Search", "Sorted", sortedText, position);
+			if(key == null){
+				return;
+			}
+
+			int search = Integer.parseInt(key);
+			int found = JumpSearch.jumpSearch(sorted, search);
+			if(found == -1){
+				position = "Element " + search + " is not found.";
+			}else{
+				position = "Element @ index: " + found;
+			}
+		}
+	}
+
+	/**
+	 * Asks for a search key, re-asking until one is usable.
+	 *
+	 * <p>The validation loop lives here rather than in {@link Presenter} on purpose. {@code intOnly}
+	 * reports a null as invalid, so a cancel handled inside the loop would re-ask forever and trap the
+	 * user in the dialog — a bug this project shipped once already, in the same two searches. Null is
+	 * returned straight through instead.
+	 *
+	 * @param title window text, "Linear Search" or "Jump Search"
+	 * @param heading "Unsorted" or "Sorted", the qualifier on the element line
+	 * @param elements the array as displayed
+	 * @param position the previous result line, shown above the input line
+	 * @return a usable key, or null if the user cancelled
+	 */
+	private static String askSearchKey(String title, String heading, String elements, String position){
+		while(true){
+			String reply = Presenter.askSearchKey(title, heading, elements, position);
+			if(reply == null || intOnly(reply)){
+				return reply;
+			}
+		}
+	}
+
+	/**
+	 * Formats values the way the dialogs display them: a leading space, then each value and a space.
+	 *
+	 * <p>Identical to {@link Array#getElement()}, which cannot be reused here because that method
+	 * formats the array as <i>typed</i> while jump search displays the <i>sorted</i> copy. Matching
+	 * the format rather than sharing the code keeps the string in one place per array.
+	 */
+	private static String asElements(int[] values){
+		StringBuilder out = new StringBuilder(" ");
+		for(int value : values){
+			out.append(value).append(' ');
+		}
+		return out.toString();
+	}
+
 	public static boolean intOnly(String str){
 		if(str == null || str.isEmpty()){
 			return false;
@@ -158,8 +251,8 @@ public class Runner {
 			return false;
 		}
 	}
-	
-	
+
+
 	/**
 	 * Whether the text typed at the array-length prompt is usable.
 	 *
@@ -180,29 +273,16 @@ public class Runner {
 		// intOnly already proved the string parses, so this cannot throw.
 		return Integer.parseInt(str) >= 1;
 	}
-	
+
 	/**
 	 * Shows a sort's intermediate states and its final result.
 	 *
-	 * <p>Temporary home for this dialog. Task 13 collapses every xxxGUI method and this helper
-	 * into a single Presenter; until then the extracted sorts display through here so the menu
-	 * keeps working. Cases 2-5 still show their own dialogs from inside their algorithm classes.
-	 *
-	 * @param title window and heading text, e.g. "Bubble Sort"
-	 * @param trace one array state per swap, in order; may be empty if the input was sorted
-	 * @param result the final sorted array
+	 * <p>Kept as a method on this class rather than inlined at five call sites only because all five
+	 * pass the same array: {@code arr.getElement()} is the display string and cannot be read here.
+	 * {@link Presenter#showSortTrace} does the drawing.
 	 */
 	private static void showSortTrace(String title, java.util.List<int[]> trace, int[] result){
-		StringBuilder steps = new StringBuilder();
-		for(int[] state : trace){
-			for(int i = 0; i < state.length; i++){
-				steps.append(state[i]).append("   ");
-			}
-			steps.append("\n");
-		}
-		JOptionPane.showMessageDialog(null, "Unsorted element: "+arr.getElement()+"\n"+
-				title+" Process:\n"+steps+"\nSorted Element: "+java.util.Arrays.toString(result),
-				title, 1);
+		Presenter.showSortTrace(title, arr.getElement(), trace, result);
 	}
 
 	public static void main(String []args){

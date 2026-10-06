@@ -30,7 +30,7 @@
  * a mistake becomes visible - the 2019 version printed sub-ranges after they had been sorted,
  * which looked plausible while the array was not.
  */
-public class Quicksort {
+public final class Quicksort {
 
 	private Quicksort(){
 		// Not instantiable: every entry point is static.

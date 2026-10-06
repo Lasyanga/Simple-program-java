@@ -55,9 +55,18 @@ public class GuiDriver {
      * <p>Position is the test, not the mere presence of {@code !!}: a captured dialog can
      * legitimately contain it - the welcome screen reads "Welcome!!" - and searching for the
      * substring anywhere would flag every session as a failure.
+     *
+     * <p>The middle case is a mismatch, and it used to be missed. {@code handle} records it embedded
+     * in the turn header - {@code "04 | !! MISMATCH ... | title=Menu"} - so it started with a digit,
+     * and neither {@code startsWith} matched. Every call to {@code assertRanCleanly} claimed the
+     * session "arrived, matched, and was answered without incident" while checking only arrival and
+     * count. That silently disarms any assertion made by turn index: if a dialog appeared, vanished,
+     * or duplicated earlier in the session, the indices shift and the assertion inspects a different
+     * dialog while still passing.
      */
     static boolean isMarkerLine(String line) {
-        return line.startsWith("!! ") || line.startsWith("    !! ");
+        return line.startsWith("!! ") || line.startsWith("    !! ")
+                || line.contains(" | !! ");
     }
 
     private static final List<Turn> SCRIPT = new ArrayList<>();

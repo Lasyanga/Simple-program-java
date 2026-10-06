@@ -9,7 +9,7 @@
  *
  * <p>Presentation lives in the caller (Runner until Task 13 introduces the Presenter).
  */
-public class InsertionSort {
+public final class InsertionSort {
 
 	private InsertionSort(){
 		// Not instantiable: every entry point is static.

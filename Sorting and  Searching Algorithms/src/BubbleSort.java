@@ -9,7 +9,7 @@
  *
  * <p>Presentation now lives in the caller (Runner until Task 13 introduces the Presenter).
  */
-public class BubbleSort {
+public final class BubbleSort {
 
 	private BubbleSort(){
 		// Not instantiable: every entry point is static. The old constructor was what
