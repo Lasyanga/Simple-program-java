@@ -1,0 +1,33 @@
+# Compiled Java output
+*.class
+
+# Build directories (none of these are used today - no build tool in this repo,
+# sources are compiled straight to bin/ with javac)
+bin/
+out/
+target/
+build/
+
+# Eclipse / NetBeans
+.settings/
+.classpath
+.project
+nbproject/private/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+
+# Logs and editor droppings
+*.log
+*.tmp
+*.bak
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
