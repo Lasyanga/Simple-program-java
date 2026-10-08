@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**19 of 22 code complete. 210 tests, 0 failures, 16 suites, verified by `mvn -q clean package`.
+**20 of 22 code complete. 210 tests, 0 failures, 16 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -30,7 +30,8 @@ Nothing pushed.**
 | 17 | Move to conventional Maven layout | done - **double-space directory deleted** |
 | 18 | Add package declaration | done - **29 files in lgorithms package** |
 | 19 | Implement Exponential Search | done - **menu entry is honest** |
-| 20-22 | Docs, queue tests, line endings | open |
+| 20 | Update README + AGENTS + CODE_REVIEW | done - **all three rewritten, counts measured** |
+| 21-22 | Queue tests, line endings | open |
 
 **All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
 no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
@@ -1446,7 +1447,7 @@ removing it is smaller.
 
 ## Task 20: Update README and AGENTS.md to match the new structure
 
-**Status:** open
+**Status:** done — all three documents rewritten against the finished code
 
 **Description:** Both documents describe a repo that will no longer exist after Tasks 17-19:
 `AGENTS.md` documents the double-space directory, the default package, the recursive `Menu()`,
@@ -1456,13 +1457,15 @@ correct the review's *unverified* caveat in `CODE_REVIEW.md` — by then the cra
 been reproduced and fixed, so the review should say so rather than leaving them as open findings.
 
 **Acceptance criteria:**
-- [ ] Every path, command, and package name in both documents matches the repo
-- [ ] `CODE_REVIEW.md`'s known-issues and suggested-order sections are marked resolved with a pointer to the fixing task
-- [ ] No documented command fails when run as written
+- [x] Every path, command, and package name in both documents matches the repo
+- [x] `CODE_REVIEW.md`'s known-issues and suggested-order sections are marked resolved with a pointer to the fixing task
+- [x] No documented command fails when run as written
 
 **Verification:**
-- [ ] Manual check: run every command in `README.md` verbatim, from a clean clone
-- [ ] Manual check: every claim in `AGENTS.md` checked against the source
+- [x] Manual check: every command in `README.md` run from the repo root — `mvn -q clean package`
+      exits 0, and all three entrypoint classes exist at `target/classes/algorithms/`
+- [x] Manual check: every claim in `AGENTS.md` checked against the source — the class counts were
+      wrong on the first pass (13/16 vs the real 14/17) and were corrected by measurement
 
 **Dependencies:** Task 17, Task 18, Task 19
 
@@ -1470,6 +1473,28 @@ been reproduced and fixed, so the review should say so rather than leaving them 
 - `README.md`
 - `AGENTS.md`
 - `CODE_REVIEW.md`
+
+**What actually changed, and the one error worth recording:**
+
+`README.md` was rewritten wholesale — it described a repo that no longer exists: `javac` build,
+`bin/` output, the double-space directory, the default package, Java 8, and a known-issues list
+whose three entries had all been fixed by Tasks 10, 12 and 19. Every section was wrong.
+
+`AGENTS.md` was likewise rewritten: layout, package, build commands (no more `<sourceDirectory>`
+override), the control-flow section (which described the recursive `Menu()` and the `quiano`
+fields as live), and the known-defects list (now empty).
+
+**The error worth recording:** the first draft of both documents claimed **13 production classes
+and 16 test files**. Measured against the directory, the real numbers are **14 and 17** —
+`ExponentialSearch` arrived in Task 19, after the layout section was written, and `GuiDriver` is
+a 17th file that is not a test class. The counts now come from `Get-ChildItem`, not memory.
+A class-count claim is exactly what a reader checks first, and getting it wrong costs trust in
+every other sentence of the document.
+
+`CODE_REVIEW.md` was **not** rewritten. It is the evidence for why each change was made, so the
+findings stay verbatim; what was added is a status banner plus a resolution line on each
+unmarked finding and each suggested-order item, each naming the task that fixed it. The document
+now says up front that it is history, not a live list of open work.
 
 **Estimated scope:** S
 

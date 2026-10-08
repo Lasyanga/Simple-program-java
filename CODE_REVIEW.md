@@ -6,6 +6,26 @@
 five sorting and two searching algorithms with visible intermediate state. It is reviewed
 against that goal, and separately against what a portfolio repo would need today.
 
+> **Status: every finding below has been acted on.** The modernization ran as 22 tasks
+> tracked in `tasks/enhance-sorting-app/todo.md`. This document is kept as the *evidence*
+> for why each change was made, not as a live list of open work — the findings are
+> reproduced verbatim below so a reader can see what was wrong, with a resolution line
+> pointing at the task that fixed it. The standing summary:
+>
+> | Section | Outcome |
+> |---|---|
+> | `## Correctness` | all 7 findings fixed (Tasks 3, 4, 5, 11, 12) |
+> | `## Architecture` | extraction done (Tasks 6-13), plus the QuickSort correction (Task 10) |
+> | `## Readability` | typos fixed (Task 16), `partion`→`partition` (Task 10) |
+> | `## Dead code` | all five items removed (Tasks 8, 11, 12, 15) |
+> | `## Performance` | left alone, as the section itself recommends |
+> | `## Security` | nothing to do |
+> | `## Suggested order of work` | all 7 items complete |
+>
+> What remains open is **not** in this review: the legibility check (a human must judge how
+> dialog text reads on screen) and the two items the original review never covered — queue
+> test coverage (Task 21) and line endings (Task 22).
+
 ## How this review was produced
 
 The first pass came from reading the source only. **Updated 2026-10-06, after Task 1 installed
@@ -52,7 +72,8 @@ capacity 2, size -1, and no exception at all for capacity 0.
 `CircularQueue` was checked for the same defect and is **clean**: its guards use `if/else`, so
 they genuinely prevent fall-through. Verified by execution.
 
-**Required — an empty text field kills the app.** `Runner.intOnly("")` returns `true`: the
+**Required — an empty text field kills the app.** ~~Open.~~ **Fixed 2026-10-06 (Task 3).**
+`Runner.intOnly("")` returns `true`: the
 loop at `Runner.java:140` never executes for a zero-length string, so it falls through to
 `return true`. Clearing the field and pressing OK therefore produces
 `Integer.parseInt("")` → `NumberFormatException`. At the array-length prompt, `GUI()`'s
@@ -64,7 +85,8 @@ second route to the same place:** `showInputDialog` returns `null`, and `intOnly
 `NullPointerException` on `str.length()` before the digit loop runs. So both "clear the field"
 and "press Cancel" end in the same handler — there are two distinct crash paths, not one.
 
-**Required — `Menu()` recurses instead of looping.** `Runner.java:135` calls `Menu()`
+**Required — `Menu()` recurses instead of looping.** ~~Open.~~ **Fixed 2026-10-07 (Task 14).**
+`Runner.java:135` calls `Menu()`
 unconditionally at the bottom of a `do/while`, and several `case` labels call it again. The
 loop condition is never reached, because the method never returns normally — every path
 either recurses deeper or hits `System.exit(0)` (case 9). Each menu click adds stack frames.
@@ -89,7 +111,8 @@ The false "You Must sort the array element in able to perform this algorithm." m
 `ArrayTest` now pins the mechanism: `getsorted()` sorts a clone and does not mutate the stored
 copy, and `getCopy()` returns the live reference.
 
-**Required — searching for the number 2 silently returns to the menu.** `JOptionPane.CANCEL_OPTION`
+**Required — searching for the number 2 silently returns to the menu.** ~~Open.~~ **Fixed
+2026-10-07 (Task 11).** `JOptionPane.CANCEL_OPTION`
 is **2**, not -1. `LinearSearch.java:28` and `JumpSearch.java:39` both compare the parsed search
 value against it, so typing `2` into the search box is interpreted as "user cancelled" and the
 app navigates away instead of searching. Every other digit searches normally, which is exactly
@@ -108,7 +131,8 @@ Verified by execution 2026-10-06; the user only had to type `0` as the length. T
 `Runner.isValidLength`, which requires a value of at least 1 **before** the array is created,
 so `size == 0` can no longer reach `setElement` at all.
 
-**Required — `jumpSearch` throws on an empty array.** `JumpSearch.java:59` evaluates
+**Required — `jumpSearch` throws on an empty array.** ~~Open.~~ **Guard added 2026-10-07
+(Task 12), with the NPE fix.** `JumpSearch.java:59` evaluates
 `array[Math.min(step, len) - 1]`; with `len == 0` and `step == 0` that is `array[-1]`, so
 `ArrayIndexOutOfBoundsException: Index -1 out of bounds for length 0`. Verified 8/8 correct
 against brute force on non-empty inputs, so the core is sound — only the empty case is missing
@@ -131,6 +155,12 @@ invoking `intOnly` through a null reference. This is why those fields survive at
 "fixing" them by assigning `new Runner()` would be a regression, not a repair.
 
 ## Architecture — the one structural problem
+
+**Resolved across Tasks 6-13.** The plan below was executed in full: each algorithm is now a
+pure `static` method with no fields and no dialogs, every `JOptionPane` call lives in one
+`Presenter` class, and `Runner` owns control flow. The six near-identical `getXProcess()` /
+`xxxGUI()` pairs collapsed as predicted. What follows is the original analysis, kept because
+it explains *why* the structure is what it is now.
 
 **Every algorithm class is three things welded together:** the sort, the trace-string
 builder, and the dialog. `BubbleSort` clones, sorts, appends every intermediate state to a
@@ -206,27 +236,34 @@ Worth knowing before editing that file: `MergeSort`'s single tail-copy loop look
 (where is the right-side loop?) and is not one — the main loop already guarantees only one
 side can have leftovers. Add a comment, because the next reader will second-guess it too.
 
-**Nit** (partly resolved): `partion` was misspelled (`Quicksort.java:34`) and is now `partition`,
+**Nit** (~~partly~~ **fully resolved**): `partion` was misspelled (`Quicksort.java:34`) and is now `partition`,
 though the spelling only went away because the method was rewritten - see the Quicksort correction
 above; the dialog title reads "Insetion
 Sort" (`InsertionSort.java:21`); the search prompt is "Enter the you want to
 Search:[element][interval]" in both search classes, and that `[element][interval]` hint is
 false — the code does `Integer.parseInt` on the whole input; `Quicksort` vs `BubbleSort`
-casing is inconsistent.
+casing is inconsistent. **→ all four resolved: the rename and the search prompt in Task 12,
+the title in Task 7, and `Quicksort` → `QuickSort` in Task 16. Task 16 also swept the
+remaining user-visible strings, finding nine defects this list had not enumerated.**
 
 ## Dead code
 
 *Ask before deleting.*
 
-- `SelectionSort.java:5` — `private Array arr;`, never assigned or read.
-- `JumpSearch.java:13` — `inpt[] = new int[2]`, never used.
+**All five items are now removed:**
+
+- `SelectionSort.java:5` — `private Array arr;`, never assigned or read. **→ removed Task 8.**
+- `JumpSearch.java:13` — `inpt[] = new int[2]`, never used. **→ removed Task 12.**
 - `LinearSearch.java:34-36` — `opt == JOptionPane.CANCEL_OPTION`. **This was misfiled as dead
   code in an earlier draft of this review and that was wrong.** `CANCEL_OPTION` is **2**, not
   -1, and `intOnly("2")` is true, so the comparison is reachable by ordinary input: see the
   Required finding above. It was only unreachable in `JumpSearch`, where line 35 throws first.
-- `CircularQueue.java:143-156` — commented-out demo block.
+  **→ deleted, not repaired, in Task 11: the check conflated "user cancelled" with a parsed
+  value, and Cancel is now handled by a null check before parsing.**
+- `CircularQueue.java:143-156` — commented-out demo block. **→ removed Task 15.**
 - The digit validator, copy-pasted three times as `Runner.intOnly`, `QueueJava.isInteger`,
-  `CircularQueue.isInteger`.
+  `CircularQueue.isInteger`. **→ collapsed into `Validator.isInt` in Task 15, which also
+  fixed a live queue crash the copies had drifted into.**
 
 **Superseded 2026-10-06 — this note would now cause an outage.** This review previously said the
 empty `catch (Exception e) {}` blocks in `LinearSearch` and `JumpSearch` were *load-bearing*:
@@ -283,31 +320,44 @@ Worth recording, because the findings above are long:
 
 ## Suggested order of work
 
-Tracking lives in `tasks/enhance-sorting-app/todo.md` — that file owns the work items; this
-list is the summary and must not be treated as the source of truth for status.
+**All seven items are complete.** Tracking lived in `tasks/enhance-sorting-app/todo.md`
+— that file owns the work items and their status; this list is the original summary,
+reproduced so a reader can see what was proposed. Resolution in **bold**.
 
 1. Fix the two reachable crashes (`QueueJava` overflow/underflow fall-through;
    `intOnly("")`). Both are small and both are real. **Both confirmed by execution
    2026-10-06.** Note there are *two* crash paths in the second one, not one: an empty field
    gives `NumberFormatException`, Cancel gives `NullPointerException`.
+   **→ Tasks 4 and 3; a third path, integer overflow, was found and fixed too.**
 2. Add tests for the six algorithms. After step 4 this is nearly free, and it is the single
    biggest improvement available to this repo.
+   **→ Done: 210 tests across 16 suites, fuzzed against independent oracles.**
 3. Make `sort` a boolean, or delete the gate.
+   **→ Deleted in Task 5 — verified the gate guarded nothing: `getsorted()` sorts its own
+   clone regardless.**
 4. Extract the algorithms into pure static methods; collapse the six `xxxGUI()` methods into
    one presenter. **Correction:** `LinearSearch` has *no* pure method to extract — its logic
    lives in `Searching()`, which mutates static `position` and opens a dialog. It needs
    authoring, not extraction. `JumpSearch.jumpSearch` *is* already pure and correct.
+   **→ Tasks 6-13. The correction was right: Task 11 authored `linearSearch`/
+   `linearSearchAll` rather than extracting them.**
 5. ~~Drop `bin/*.class` from git, add a `.gitignore`~~ **done 2026-10-06** — `.gitignore` added
    and the 11 `.class` files untracked. ~~Still open: add a real build file~~ **done
    2026-10-06** — Maven 3.9.16 and `pom.xml` added, JUnit 5 wired and verified running.
 6. Never, under any circumstances, "fix" `quiano = new Runner()`. It restarts the entire
    input dialog. **Confirmed 2026-10-06** that the null field is harmless today *only*
    because `Menu()` and `intOnly()` are `static`.
+   **→ Moot since Task 15: the `quiano` fields were deleted along with the dead code they
+   were part of. There is nothing left to assign.**
 7. **New, found by execution 2026-10-06** — see `## Correctness`:
    (a) searching for the value `2` silently cancels, because `CANCEL_OPTION` is 2, not -1;
    (b) array length `0` ends the app via the `do/while` that always prompts once;
    (c) `jumpSearch` throws `ArrayIndexOutOfBoundsException` on an empty array. (b) and (c)
    must be fixed together — (c) is unreachable only because (b) crashes first.
+   **→ (a) Task 11, (b) Task 3, (c) Task 12. The claim that they must be fixed together was
+   itself superseded inside `## Correctness`: Task 3 removed the length-0 path entirely, so
+   (c) became unreachable for the opposite reason — a guard was still added for the method's
+   own sake.**
 
 ## On presenting this repo
 
@@ -315,3 +365,11 @@ The honest version of this project's story is: *2019 college project, algorithms
 correctly, no tests, GUI layer needs work.* That is a perfectly good portfolio narrative,
 and these gaps read as learning rather than carelessness. What is worth avoiding is
 publishing the repo as-is and letting a reader discover the `intOnly("")` crash themselves.
+
+**Updated 2026-10-08:** that caveat no longer applies — the crash was fixed in Task 3 and
+every other finding in this review has since been resolved. The narrative that fits now is
+*a 2019 college submission, modernized: Maven build, 210 tests fuzzed against independent
+oracles, algorithms extracted into pure methods, and a GUI harness that drives the real
+dialogs.* The one thing still worth a human's eyes before publishing is **legibility** —
+`GuiSessionTest` proves which dialogs appeared and what text they held, never how that text
+reads on screen.
