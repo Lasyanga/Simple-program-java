@@ -331,7 +331,7 @@ reproduced so a reader can see what was proposed. Resolution in **bold**.
    **→ Tasks 4 and 3; a third path, integer overflow, was found and fixed too.**
 2. Add tests for the six algorithms. After step 4 this is nearly free, and it is the single
    biggest improvement available to this repo.
-   **→ Done: 210 tests across 16 suites, fuzzed against independent oracles.**
+   **→ Done: 226 tests across 17 suites, fuzzed against independent oracles.**
 3. Make `sort` a boolean, or delete the gate.
    **→ Deleted in Task 5 — verified the gate guarded nothing: `getsorted()` sorts its own
    clone regardless.**
@@ -368,7 +368,7 @@ publishing the repo as-is and letting a reader discover the `intOnly("")` crash 
 
 **Updated 2026-10-08:** that caveat no longer applies — the crash was fixed in Task 3 and
 every other finding in this review has since been resolved. The narrative that fits now is
-*a 2019 college submission, modernized: Maven build, 210 tests fuzzed against independent
+*a 2019 college submission, modernized: Maven build, 226 tests fuzzed against independent
 oracles, algorithms extracted into pure methods, and a GUI harness that drives the real
 dialogs.* The one thing still worth a human's eyes before publishing is **legibility** —
 `GuiSessionTest` proves which dialogs appeared and what text they held, never how that text

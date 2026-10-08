@@ -89,7 +89,7 @@ src/
 │   ├── JumpSearch.java       # ...
 │   ├── QueueJava.java        # console queue demo
 │   └── CircularQueue.java    # console circular queue demo
-└── test/java/algorithms/     # 17 files: 16 test classes + GuiDriver (the harness)
+└── test/java/algorithms/     # 18 files: 17 test classes + GuiDriver (the harness)
     ├── GuiSessionTest.java   # end-to-end GUI transcripts (forked JVM)
     ├── GuiDriver.java        # dialog driver for the GUI tests
     ├── ArchitectureTest.java # structural rules (source-text analysis)

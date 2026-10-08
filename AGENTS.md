@@ -9,7 +9,7 @@ tests are in the same package under `src/test/java/algorithms/`.
 - `src/main/java/algorithms/` — 14 production classes: `Runner` (entrypoint), `Presenter`
   (sole `JOptionPane` owner), `Validator` (shared input validation), `Array`, five sorts,
   three searches, and two console queue demos.
-- `src/test/java/algorithms/` — 17 files: 16 test classes plus `GuiDriver`, the harness
+- `src/test/java/algorithms/` — 18 files: 17 test classes plus `GuiDriver`, the harness
   `GuiSessionTest` forks. One suite per algorithm, plus
   `ArchitectureTest` (structural rules from source text), `GuiSessionTest` (end-to-end
   GUI transcripts), `UserFacingTextTest` (typo detection), and `ValidatorTest`.

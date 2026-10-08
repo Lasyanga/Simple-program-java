@@ -1592,13 +1592,41 @@ inflate the diff of any task that ran alongside it.
 - [x] A renormalization commit exists and is separate from any other change — `4653787`,
       containing exactly two files (`.gitattributes`, `Array.java`) and nothing else. Staged
       file count was checked to be 2 immediately before committing.
-- [x] No line-ending warning appears on subsequent commits — `git add .` on the clean tree
-      produced no output, and the `4653787` commit itself printed no warning. Before this task
-      the same command warned on every commit.
+- [x] No line-ending warning appears on subsequent commits — **true, but only while the working
+      copy matches the platform's checkout form.** After conforming the working copy (below),
+      `git add -A` and `git commit` are both silent. See the correction immediately below: the
+      first evidence recorded for this criterion was invalid.
+
+**Correction to a claim I made earlier in this task.** I first marked criterion 3 passed because
+`git add .` printed nothing. That test proved nothing: on a tree git already considers clean, the
+stat cache lets it skip every file without reading or converting one. The moment a real edit was
+committed (`545fe67`, the status update below), the warning came back, on exactly the two files
+the edit tool had rewritten:
+
+    warning: in the working copy of 'tasks/enhance-sorting-app/plan.md', LF will be replaced by CRLF
+    warning: in the working copy of 'tasks/enhance-sorting-app/todo.md', LF will be replaced by CRLF
+
+Root cause, not a defect in `.gitattributes`: the file's stored content is LF (correct) and the
+checkout form on Windows is CRLF (per-platform, as required), so a working copy holding LF is a
+mismatch git is entitled to report. The tools I edit with write LF regardless of what was there
+before, so any file they touch lands in that state. A contributor whose editor preserves the
+existing endings never sees it — a fresh clone is uniformly `w/crlf=40`.
+
+Handled by conforming the working copy to the checkout form rather than by weakening the policy
+to `eol=lf`, which would have silenced the warning permanently but contradicted the task's
+explicit "check them out per-platform" requirement. The two were traded deliberately:
+per-platform was written first, and the warning is cosmetic — it never affects `git status`,
+the stored content, or a clone.
+
+**Residual risk, stated rather than hidden:** if a tool writes LF into the working copy again,
+the warning returns for that file until it is re-conformed. Nothing breaks when it does.
 
 **Verification:**
 - [x] Manual check: commit a trivial change and confirm no CRLF warning — the Task 22 status
-      update below is that change; see the note on measurement method.
+      update (`545fe67`) *is* that change, and it **did** warn, which is how the invalid test
+      above was caught. The final commit for this task was preceded by conforming the working
+      copy and produced no warning from either `git add` or `git commit`; both were captured
+      and checked rather than assumed.
 - [x] Manual check: clone on Windows and on a POSIX system; both check out sane line endings —
       **Windows measured, POSIX simulated.** A fresh clone of this repo gave `i/lf=40` /
       `w/crlf=40`, status clean, `git diff HEAD` empty. Re-checking out that same clone under
@@ -1623,12 +1651,18 @@ The diff was then proven to be line-endings only rather than asserted:
 Every line shows up because every terminator changed; with carriage returns ignored the blobs
 are byte-identical. `226 tests, 0 failures, 17 suites` held before and after.
 
-**Residual note (cosmetic, no action):** this working copy's own files are a mix of `w/lf` and
-`w/crlf`, with `todo.md` at `w/mixed`, because various tools wrote LF while checkouts wrote CRLF.
-Git is content with all of it — status is clean, no warnings, no phantom diffs — and a fresh
-clone does not inherit the mix. `git checkout-index -f -a` was attempted to uniformise it and
-was a no-op: git rewrites a worktree file only when its normalised content differs from the
-index, and here it never does. Left alone deliberately rather than forced.
+**Working-copy state, and what was done about it:** the working copy started as a mix of `w/lf`
+and `w/crlf`, with `todo.md` at `w/mixed`, because various tools wrote LF while checkouts wrote
+CRLF. Git accepted all of it — status clean, no phantom diffs — and a fresh clone does not inherit
+the mix (`w/crlf=40` uniformly). `git checkout-index -f -a` was tried first to uniformise it and
+was a **no-op**: git rewrites a working-copy file only when its normalised content differs from
+the index, and here it never does, so it had nothing to write. That is also why the mix was a
+cosmetic fact and not a correctness one.
+
+Because `checkout-index` could not do it, the working copy was conformed by converting the LF
+files to CRLF directly, which is what makes criterion 3 hold rather than merely appear to. The
+conversion touches only working-copy bytes; the index was already uniform `i/lf=40` and is not
+part of this commit.
 
 **Dependencies:** Task 20
 
@@ -1643,9 +1677,38 @@ index, and here it never does. Left alone deliberately rather than forced.
 ---
 
 ### Checkpoint: After Tasks 17-22
-- [ ] `mvn -q clean package` succeeds from a clean clone
-- [ ] `mvn -q test` passes with no warnings
-- [ ] Every command in `README.md` runs verbatim
-- [ ] Every claim in `AGENTS.md` matches the source
-- [ ] `CODE_REVIEW.md` no longer lists a defect that has been fixed
-- [ ] Review with human — this is the point to decide whether the repo is portfolio-ready
+- [x] `mvn -q clean package` succeeds from a clean clone — cloned this repo to a scratch
+      directory (`clone exit: 0`) and built there: `maven exit: 0`, **226 tests, 0 failures,
+      17 suites**. This is the check that a *fresh* checkout is self-contained, not this
+      working copy, which had `target/` already populated.
+- [x] `mvn -q test` passes with no warnings — run in that same clone: no `WARNING` or `warning`
+      line in the output.
+- [x] Every command in `README.md` runs verbatim — all six were executed as written:
+      `mvn -q clean package` (exit 0), `mvn -q test` (exit 0), `mvn -q test -Dtest=QuickSortTest`
+      (exit 0), `java -cp target/classes algorithms.QueueJava` with piped stdin (exit 0, prints
+      the menu), `java -cp target/classes algorithms.CircularQueue` with piped stdin (exit 0),
+      and `algorithms.Runner` confirmed present at `target/classes/algorithms/Runner.class`.
+      The GUI entrypoint was **not** run — it is a modal `JOptionPane` loop and cannot be driven
+      headlessly; that is stated in `AGENTS.md` rather than papered over.
+- [x] Every claim in `AGENTS.md` matches the source — checked claim by claim, not skimmed.
+      **Four claims were false and have been corrected in this task.** The test-directory count
+      had drifted: `AGENTS.md` and `README.md` both said *"17 files: 16 test classes"*, but Task
+      21 added `CircularQueueTest`, making it 18 files / 17 classes. `CODE_REVIEW.md` was stale
+      in two more places, still claiming *"210 tests across 16 suites"* where the build now
+      reports 226/17. All four corrected. This is the same defect class Task 20 was written to
+      prevent: **a doc claim is only true as of its last measurement**, and Tasks 21-22 changed
+      the numbers afterward. The claims verified as correct: 14 production classes, every file
+      declares `package algorithms`, `Character.isDigit` appears in production only in
+      `Validator.java`, no `quiano` field exists (the hits are Javadoc describing its removal
+      plus the author's surname in the welcome dialog), `Menu()` is a `while(true)` loop rather
+      than recursion (the single `Menu();` at `Runner.java:65` is the one-way entry from `GUI()`,
+      and the loop is at line 89), and all three entrypoints have a real `main`.
+- [x] `CODE_REVIEW.md` no longer lists a defect that has been fixed — all six `**Required**`
+      findings carry a dated fix or guard marker. The `2019` evidence itself is deliberately left
+      unedited: it is a record of what was found, not a live status board.
+- [ ] Review with human — this is the point to decide whether the repo is portfolio-ready.
+      **Deferred to the human, not skipped.** Two items still need a person, neither of which a
+      test can settle: (1) the wording `"This program show diff."`, left unchanged in Task 16
+      because correcting it would mean guessing the author's intent; (2) whether the corrected
+      prompts are *legible when rendered* — `GuiDriver` reads a label's text, never the screen,
+      so a green `GuiSessionTest` proves what the dialogs say, not how they look.
