@@ -6,18 +6,20 @@ commit log. Versions follow [Semantic Versioning](https://semver.org/).
 
 ## [2.0.0] - 2026-10-08
 
-The modernization release. The 2019 college submission was rebuilt on Maven with
-JUnit 5, its algorithms were pulled out of the GUI code, and every defect found in
-it was fixed. **Breaking** for anyone who imported the old class names or called
-the queue methods directly.
+The modernization release. The original college submission was rebuilt on Maven
+with JUnit 5, its algorithms were pulled out of the GUI code, and every defect
+found in it was fixed. **Breaking** for anyone who imported the old class names
+or called the queue methods directly.
 
 ### Added
 
 - **Maven build with JUnit 5** — 226 tests across 17 suites. Build with
   `mvn -q clean package`, which compiles and runs the whole suite.
-- **Exponential search** — menu option 7 was a stub that only displayed
-  "not implemented". It now searches, and is fuzz-tested against a brute-force
-  oracle over 800k differential trials.
+- **Exponential search** — menu option 7 was a commented-out call and no
+  `ExponentialSearch` source existed: on an unsorted array you got the generic
+  "sort first" gate, and on a sorted array selecting it did nothing at all. It
+  now searches, fuzz-tested against a brute-force oracle over 800,000
+  differential trials.
 - **`Validator`** — one shared input-validation class. Replaces three
   near-identical copies of the same digit check that had drifted apart.
 - **`Presenter`** — the single owner of every `JOptionPane`. No algorithm builds
@@ -33,8 +35,9 @@ the queue methods directly.
   `enqueue` returns `boolean`, `dequeue` returns `int`, `display()` returns
   `String`. All three were `void` and wrote to `System.out` from inside the
   data structure; printing now lives in `main`.
-- Target is **Java 21**, was Java 8. Avoids the "source value 8 is obsolete"
-  warning modern JDKs emit, and stays buildable for years.
+- Target is **Java 21**. The original submission had no build tool at all; the
+  modernization plan began at Java 8 and moved to 21, an LTS that current JDKs
+  will not warn about.
 - `Menu()` is a `while(true)` loop instead of recursing into itself on every
   navigation.
 
@@ -44,9 +47,15 @@ the queue methods directly.
   display was wrong as well. The partition was subtly incorrect; the project's
   own code review had asserted it was right by reading it, and that assertion
   was false. Caught by fuzzing against `java.util.Arrays.sort`.
-- **Jump Search threw `NullPointerException`** on an empty array.
-- **Searching for the number 2 silently cancelled.** `JOptionPane` returns `2`
-  for `CANCEL_OPTION`, which collided with a perfectly valid input.
+- **Jump search had two separate defects, fixed together in Task 12.** On an
+  empty array, `jumpSearch` threw `ArrayIndexOutOfBoundsException: Index -1 out
+  of bounds for length 0`. Independently of array contents, option 8 threw
+  `NullPointerException` on every run, because `JumpsearchGUI` called
+  `nextToken()` on a `StringTokenizer` that was never assigned. The NPE fired
+  first, which the project's own review notes as the reason the empty-array path
+  was unreachable.
+- **Searching for the number 2 silently cancelled.** `JOptionPane.CANCEL_OPTION`
+  *is* the constant `2`, which collided with a perfectly valid input.
 - **Input parsing crashed** on an empty string, a `null` string, or an integer
   larger than `Integer.MAX_VALUE`.
 - **An array length of 0** threw `ArrayIndexOutOfBoundsException`.
@@ -56,9 +65,12 @@ the queue methods directly.
 - The `sort` counter gate was removed — it guarded nothing; `getsorted()` sorted
   its own clone regardless.
 
-## [1.0.0] - 2019
+## [1.0.0] - 2020-11-16
 
-The original college submission, preserved at the `v1.0.0` tag. Five sorting
-algorithms, two working search algorithms (a third was an unimplemented stub),
-and two console queue demos — written to run from the IDE, with no build tool,
-no dependencies, and no tests.
+The original college submission, preserved at the `v1.0.0` tag. Authored in 2019
+according to the project's own records and first committed to git on 2020-11-16;
+the tag was cut on 2026-10-06 to mark the pre-modernization baseline.
+
+Five sorting algorithms, two working search algorithms (the third was an
+unimplemented, commented-out call), and two console queue demos — written to run
+from the IDE, with no build tool, no dependencies, and no tests.
