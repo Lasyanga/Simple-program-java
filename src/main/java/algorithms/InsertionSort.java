@@ -1,3 +1,5 @@
+package algorithms;
+
 /**
  * Insertion sort, extracted from the 2019 dialog-driven version of this class.
  *

@@ -1,3 +1,5 @@
+package algorithms;
+
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -44,7 +46,7 @@ class ArchitectureTest {
             "QuickSort", "LinearSearch", "JumpSearch");
 
     private static Path sourceDir() {
-        Path dir = Path.of(System.getProperty("user.dir"), "src", "main", "java");
+        Path dir = Path.of(System.getProperty("user.dir"), "src", "main", "java", "algorithms");
         if (!Files.isDirectory(dir)) {
             fail("cannot find the source tree at " + dir.toAbsolutePath()
                     + "\nuser.dir is " + System.getProperty("user.dir")
@@ -485,7 +487,7 @@ private static String codeOnly(String java) {
 
     private static Class<?> load(String name) {
         try {
-            return Class.forName(name);
+            return Class.forName("algorithms." + name);
         } catch (ClassNotFoundException e) {
             fail("cannot load " + name, e);
             throw new AssertionError("unreachable");

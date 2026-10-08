@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**17 of 22 code complete. 193 tests, 0 failures, 15 suites, verified by `mvn -q clean package`.
+**18 of 22 code complete. 193 tests, 0 failures, 15 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -28,7 +28,8 @@ Nothing pushed.**
 | 15 | Dead code + triplicated validators | done — **changed queue behaviour on purpose** |
 | 16 | Typos and inconsistent naming | done - **the checkpoint after 14-16** |
 | 17 | Move to conventional Maven layout | done - **double-space directory deleted** |
-| 18-22 | Packaging and docs | open |
+| 18 | Add package declaration | done - **29 files in lgorithms package** |
+| 19-22 | Option 7, docs, queue tests, line endings | open |
 
 **All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
 no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
@@ -1383,20 +1384,20 @@ special — they are not part of the sorting app.
 
 ## Task 18: Add a real package declaration
 
-**Status:** open
+**Status:** done — all 29 files in `algorithms` package, build green
 
 **Description:** All 11 classes sit in the default package. Add `package algorithms;` (or a
 better name) to each, and move the files to match under `src/main/java/algorithms/`. Both halves
 must land together — a package declaration without the directory move does not compile.
 
 **Acceptance criteria:**
-- [ ] Every class declares a package and sits in the matching directory
-- [ ] No `import` of a same-package class remains
-- [ ] The suite still passes with no test changes beyond the new package line
+- [x] Every class declares a package and sits in the matching directory
+- [x] No `import` of a same-package class remains
+- [x] The suite still passes with no test changes beyond the new package line
 
 **Verification:**
-- [ ] Build succeeds: `mvn -q clean package` exits 0
-- [ ] Tests pass: `mvn -q test` exits 0
+- [x] Build succeeds: `mvn -q clean package` exits 0 — 193 tests, 0 failures, 15 suites
+- [x] Tests pass: `mvn -q test` exits 0
 - [ ] Manual check: all three entrypoints launch
 
 **Dependencies:** Task 17

@@ -1,3 +1,5 @@
+package algorithms;
+
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -496,7 +498,7 @@ class GuiSessionTest {
             ProcessBuilder builder = new ProcessBuilder(
                     java,
                     "-cp", System.getProperty("java.class.path"),
-                    "GuiDriver",
+                    "algorithms.GuiDriver",
                     scenario.toString(),
                     transcript.toString());
             builder.redirectErrorStream(true);

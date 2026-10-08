@@ -1,3 +1,5 @@
+package algorithms;
+
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -132,7 +134,7 @@ class UserFacingTextTest {
     }
 
     private static List<Path> sources() {
-        Path dir = Path.of(System.getProperty("user.dir"), "src", "main", "java");
+        Path dir = Path.of(System.getProperty("user.dir"), "src", "main", "java", "algorithms");
         if (!Files.isDirectory(dir)) {
             fail("cannot find the source tree at " + dir.toAbsolutePath(), new IOException("no src"));
         }

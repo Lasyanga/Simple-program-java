@@ -1,3 +1,5 @@
+package algorithms;
+
 /**
  * The application's entry point and its control flow.
  *

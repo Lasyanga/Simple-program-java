@@ -1,3 +1,5 @@
+package algorithms;
+
 /**
  * Jump search.
  *

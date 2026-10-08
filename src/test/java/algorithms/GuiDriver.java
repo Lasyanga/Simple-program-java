@@ -1,3 +1,5 @@
+package algorithms;
+
 import javax.swing.AbstractButton;
 import javax.swing.JDialog;
 import javax.swing.JTextField;

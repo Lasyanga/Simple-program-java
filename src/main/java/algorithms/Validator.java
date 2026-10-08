@@ -1,3 +1,5 @@
+package algorithms;
+
 /**
  * The project's one digit validator.
  *
