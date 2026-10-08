@@ -1615,11 +1615,28 @@ existing endings never sees it — a fresh clone is uniformly `w/crlf=40`.
 Handled by conforming the working copy to the checkout form rather than by weakening the policy
 to `eol=lf`, which would have silenced the warning permanently but contradicted the task's
 explicit "check them out per-platform" requirement. The two were traded deliberately:
-per-platform was written first, and the warning is cosmetic — it never affects `git status`,
-the stored content, or a clone.
+per-platform was written first.
 
-**Residual risk, stated rather than hidden:** if a tool writes LF into the working copy again,
-the warning returns for that file until it is re-conformed. Nothing breaks when it does.
+**Residual risk, stated rather than hidden — and corrected after independent review.** I first
+wrote here that the warning *"never affects `git status`, the stored content, or a clone."* The
+first half of that is **false**, and the evidence to disprove it was in my own session twenty
+minutes later: after the working-copy conversion, `git status --short` listed **13** files as
+` M` while `git diff` showed only **4** real changes. A stale stat cache makes git report an EOL
+mismatch as a phantom modification, with an empty `git diff` underneath it. An independent
+reviewer reproduced the same thing in a fresh clone, and in a throwaway repo with no
+`.gitattributes` at all, so it is git behaviour and not an artefact of this task's policy.
+
+The accurate statement of what the warning costs:
+
+- **stored content** — unaffected, genuinely. Git normalises on add; the blob is LF either way.
+- **a clone** — unaffected. A fresh clone is uniformly `w/crlf=40`, clean, no phantom diff.
+- **`git status`** — **affected transiently.** It shows `modified` for a file whose `git diff`
+  is empty, until the next `git add` refreshes the stat cache. Nothing is lost and nothing
+  needs restoring, but "never affects" was too strong and I should not have written it.
+
+**Residual risk (the real one):** if a tool writes LF into the working copy again, that file
+gets the warning *and* a phantom ` M` until it is either re-conformed or re-added. Both clear
+themselves on the next `git add`; neither affects what is committed.
 
 **Verification:**
 - [x] Manual check: commit a trivial change and confirm no CRLF warning — the Task 22 status
@@ -1629,9 +1646,16 @@ the warning returns for that file until it is re-conformed. Nothing breaks when 
       and checked rather than assumed.
 - [x] Manual check: clone on Windows and on a POSIX system; both check out sane line endings —
       **Windows measured, POSIX simulated.** A fresh clone of this repo gave `i/lf=40` /
-      `w/crlf=40`, status clean, `git diff HEAD` empty. Re-checking out that same clone under
-      POSIX rules (`core.autocrlf=false`, `core.eol=lf`) gave `i/lf=40` / `w/lf=40`, also clean.
-      The POSIX leg is a simulation of the checkout rules rather than a machine I have — it
+      `w/crlf=40`, status clean, `git diff HEAD` empty. The POSIX leg set `core.autocrlf=false`
+      (the POSIX default) and `core.eol=lf` (POSIX's native ending) in that clone, then forced a
+      genuine re-write with `git rm --cached -r .` followed by `git reset --hard HEAD`, and got
+      `i/lf=40` / `w/lf=40`, also clean. The `git rm --cached` step is not decoration: without
+      it, `git checkout -- .`, `git checkout -f`, `git reset --hard` and `git checkout-index -f -a`
+      are **all no-ops** on a stat-clean working copy, because git has nothing it considers out of
+      date to rewrite. Independent review tried exactly those four commands without it and got no
+      change — so as first written, this procedure was not reproducible. The two config lines
+      alone are not enough either; they only govern files git decides to (re)write.
+      The POSIX leg remains a simulation of the checkout rules rather than a machine I have — it
       proves what git writes under those settings, not what a Linux box would do end to end.
 
 **How the blast radius was measured, because this task was flagged `doubt-review required`:**
@@ -1653,16 +1677,53 @@ are byte-identical. `226 tests, 0 failures, 17 suites` held before and after.
 
 **Working-copy state, and what was done about it:** the working copy started as a mix of `w/lf`
 and `w/crlf`, with `todo.md` at `w/mixed`, because various tools wrote LF while checkouts wrote
-CRLF. Git accepted all of it — status clean, no phantom diffs — and a fresh clone does not inherit
-the mix (`w/crlf=40` uniformly). `git checkout-index -f -a` was tried first to uniformise it and
-was a **no-op**: git rewrites a working-copy file only when its normalised content differs from
-the index, and here it never does, so it had nothing to write. That is also why the mix was a
-cosmetic fact and not a correctness one.
+CRLF. Git accepted all of it — status was clean at that point, and a fresh clone does not inherit
+the mix (`w/crlf=40` uniformly). That mix was a cosmetic fact and not a correctness one, since
+git normalises on read and the stored blobs were already uniform.
 
-Because `checkout-index` could not do it, the working copy was conformed by converting the LF
-files to CRLF directly, which is what makes criterion 3 hold rather than merely appear to. The
-conversion touches only working-copy bytes; the index was already uniform `i/lf=40` and is not
-part of this commit.
+`git checkout-index -f -a` was tried first to uniformise it and was a **no-op**. I originally
+recorded the reason as *"git rewrites a working-copy file only when its normalised content
+differs from the index, and here it never does"* — **independent review disproved that.** It
+wrote an LF version of a file whose bytes were identical to the index blob and watched
+`checkout-index -f -a` rewrite it to CRLF anyway. The real gate is the **stat cache**, not
+content: checkout-index skips a file whose recorded stat still matches the index, which is
+exactly the state `git add` leaves behind, and that was our state. The distinction matters for
+the next person: *immediately after* a tool rewrites a file (stat stale) the same command does
+fix it, so "checkout-index cannot uniformise a clean checkout" would have been the wrong lesson
+to carry forward.
+
+Because it was a no-op **in the state we were in**, the working copy was conformed by converting
+the LF files to CRLF directly, which is what makes criterion 3 hold rather than merely appear to.
+The conversion touches only working-copy bytes; the index was already uniform `i/lf=40` and is
+not part of this commit.
+
+**Independent review (depth 1, separate agent).** Task 22 was flagged `doubt-review required`,
+so the change was reviewed by a separate agent rather than self-reviewed. It re-derived the
+blast radius from raw blobs instead of re-running my commands — `old.replace(b'\r\n', b'\n') == new`
+came back `True` for `Array.java`, and an independent CR-byte scan of all 39 pre-existing blobs
+found exactly one containing CR — and ran its own `mvn -q clean package`: **exit 0, 17 suites,
+226 tests, 0 failures.** All eight claims were checked; six held. **Three failed, all in this
+section's prose, none in the committed artifacts, and all three are corrected above:**
+
+1. *"never affects `git status`"* — false. Phantom ` M` with an empty `git diff` until the next
+   `git add` refreshes the stat. The reviewer reproduced it in a fresh clone **and** in a
+   throwaway repo with no `.gitattributes` at all, so it is git behaviour, not this policy. The
+   evidence was also in my own session, which makes writing the claim worse, not better.
+2. The POSIX re-checkout procedure as written was **not reproducible**: without `git rm --cached`,
+   `checkout`, `checkout -f`, `reset --hard` and `checkout-index -f -a` are all no-ops on a
+   stat-clean tree. The *end state* still held — the reviewer verified `w/lf=40` from a fresh
+   clone under those config values — so only the described method was wrong, not the result.
+3. The `checkout-index` no-op was a real observation with a wrong mechanism: the gate is the stat
+   cache, not normalised content, so the same command *would* fix a file whose stat is stale.
+
+The reviewer also correctly marked several of my historical observations unverifiable — the
+warnings captured on `545fe67`, and the *"staged file count = 2"* check — because they were
+recorded live and cannot be re-derived after the fact. It found no defect in `.gitattributes`
+policy, in the purity of the renormalization commit, in the working-copy conversion, or in the
+build. One judgement it raised and I accept: explicit `text` (rather than `text=auto`) on the
+four named patterns will force-normalise a binary file that ever matches them. Low likelihood,
+intent stated in the file's comment, and changing it now would weaken the criterion's explicit
+*"normalizes `*.java`, `*.md`, `pom.xml`, `.gitignore`"*.
 
 **Dependencies:** Task 20
 
