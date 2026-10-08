@@ -132,7 +132,7 @@ class UserFacingTextTest {
     }
 
     private static List<Path> sources() {
-        Path dir = Path.of(System.getProperty("user.dir"), "Sorting and  Searching Algorithms", "src");
+        Path dir = Path.of(System.getProperty("user.dir"), "src", "main", "java");
         if (!Files.isDirectory(dir)) {
             fail("cannot find the source tree at " + dir.toAbsolutePath(), new IOException("no src"));
         }

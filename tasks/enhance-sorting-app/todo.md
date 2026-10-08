@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**16 of 22 code complete. 193 tests, 0 failures, 15 suites, verified by `mvn -q clean package`.
+**17 of 22 code complete. 193 tests, 0 failures, 15 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -27,7 +27,8 @@ Nothing pushed.**
 | 14 | Recursive `Menu()` → loop | done — no loop advances by recursion |
 | 15 | Dead code + triplicated validators | done — **changed queue behaviour on purpose** |
 | 16 | Typos and inconsistent naming | done - **the checkpoint after 14-16** |
-| 17-22 | Layout, packaging and docs | open |
+| 17 | Move to conventional Maven layout | done - **double-space directory deleted** |
+| 18-22 | Packaging and docs | open |
 
 **All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
 no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
@@ -1347,7 +1348,7 @@ helper across a boundary where its assumptions invert is how that happened.
 
 ## Task 17: Move sources to the conventional Maven layout
 
-**Status:** open
+**Status:** done — 29 files moved with `git mv`, directory deleted, build green
 
 **Description:** Move `Sorting and  Searching Algorithms/src` to `src/main/java` and the tests
 to `src/test/java`, then drop the `<sourceDirectory>` override from `pom.xml`. This removes the
@@ -1358,13 +1359,13 @@ special — they are not part of the sorting app.
 **Context:** `CODE_REVIEW.md §Suggested order of work` (item 5, remainder)
 
 **Acceptance criteria:**
-- [ ] Sources live under `src/main/java`, tests under `src/test/java`
-- [ ] `pom.xml` contains no `<sourceDirectory>` override
-- [ ] The `Sorting and  Searching Algorithms` directory no longer exists
+- [x] Sources live under `src/main/java`, tests under `src/test/java`
+- [x] `pom.xml` contains no `<sourceDirectory>` override
+- [x] The `Sorting and  Searching Algorithms` directory no longer exists
 
 **Verification:**
-- [ ] Build succeeds: `mvn -q clean package` exits 0
-- [ ] Tests pass: `mvn -q test` exits 0
+- [x] Build succeeds: `mvn -q clean package` exits 0 — 193 tests, 0 failures, 15 suites
+- [x] Tests pass: `mvn -q test` exits 0
 - [ ] Manual check: `java -cp target/classes Runner` launches without a path workaround
 
 **Dependencies:** Task 13

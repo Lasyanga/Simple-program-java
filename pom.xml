@@ -37,14 +37,6 @@
   </dependencies>
 
   <build>
-    <!-- Temporary layout, replaced in Task 17 once a green suite exists to catch a bad move.
-         The source directory name contains a double space; that is legal in XML but is
-         exactly the kind of wart this override exists to contain. -->
-    <sourceDirectory>Sorting and  Searching Algorithms/src</sourceDirectory>
-    <!-- Must NOT live under <sourceDirectory>. Maven scans the source directory
-         recursively, so tests nested inside src/ would be compiled as main sources. -->
-    <testSourceDirectory>Sorting and  Searching Algorithms/test</testSourceDirectory>
-
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

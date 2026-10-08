@@ -99,7 +99,7 @@ Nothing can be compiled or run today, so every later task's verification depends
 
 ### Phase 4: Layout and polish
 
-- Task 17 — Move sources to the conventional Maven layout
+- Task 17 — Move sources to the conventional Maven layout — **done**: 29 files moved, Sorting and  Searching Algorithms deleted
 - Task 18 — Add a real package declaration
 - Task 19 — Resolve menu option 7 (implement or remove Exponential Search)
 - Task 20 — Update README and AGENTS.md to match the new structure

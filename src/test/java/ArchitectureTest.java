@@ -44,7 +44,7 @@ class ArchitectureTest {
             "QuickSort", "LinearSearch", "JumpSearch");
 
     private static Path sourceDir() {
-        Path dir = Path.of(System.getProperty("user.dir"), "Sorting and  Searching Algorithms", "src");
+        Path dir = Path.of(System.getProperty("user.dir"), "src", "main", "java");
         if (!Files.isDirectory(dir)) {
             fail("cannot find the source tree at " + dir.toAbsolutePath()
                     + "\nuser.dir is " + System.getProperty("user.dir")
