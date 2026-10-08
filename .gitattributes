@@ -1,0 +1,29 @@
+# Task 22: line endings.
+#
+# Rule: text files are stored in the repository as LF and checked out with the
+# platform's native ending - CRLF on Windows, LF on POSIX. Both a Windows clone
+# and a POSIX clone therefore get sane line endings from the same bytes.
+#
+# Why this file exists: without it, `git add` printed
+# "warning: in the working copy of 'X', LF will be replaced by CRLF" on every
+# commit, because core.autocrlf was doing the conversion with no declared policy
+# to check it against. The conversion also disagreed with what was already
+# committed - the index held a mix - so the warning was telling the truth about
+# a real inconsistency.
+#
+# Renormalization: one-time `git add --renormalize .` under these rules rewrote
+# exactly one blob, src/main/java/algorithms/Array.java, which had been
+# committed as CRLF. Every other tracked file already held LF and was left
+# byte-identical. That commit exists on its own, with no content change bundled
+# into it, because a line-ending diff applied alongside a real change would make
+# the real change unreadable.
+
+# Everything git can detect as text is normalized; binaries are left alone.
+* text=auto
+
+# The families the build and the docs are made of, stated explicitly so they
+# normalize even if auto-detection is ever tightened or disabled.
+*.java     text
+*.md       text
+pom.xml    text
+.gitignore text
