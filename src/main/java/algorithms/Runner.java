@@ -128,7 +128,7 @@ public class Runner {
 					break;
 
 				case 7:
-					Presenter.showNotImplemented();
+					searchExponential(arr.getsorted());
 					break;
 
 				case 8:
@@ -203,6 +203,35 @@ public class Runner {
 
 			int search = Integer.parseInt(key);
 			int found = JumpSearch.jumpSearch(sorted, search);
+			if(found == -1){
+				position = "Element " + search + " is not found.";
+			}else{
+				position = "Element @ index: " + found;
+			}
+		}
+	}
+
+	/**
+	 * Repeatedly searches the sorted array with exponential search until the user leaves.
+	 *
+	 * <p>Task 19. Option 7 showed "not implemented yet" since Task 5 replaced the empty 2019
+	 * branch; the commented-out call it replaced had never run. Same shape as {@code searchJump}:
+	 * the array is already sorted, so the dialog shows the sorted values and the loop returns to
+	 * the menu on Cancel.
+	 *
+	 * @param sorted the values to search, already sorted; never modified
+	 */
+	private static void searchExponential(int[] sorted){
+		String sortedText = asElements(sorted);
+		String position = " ";
+		while(true){
+			String key = askSearchKey("Exponential Search", "Sorted", sortedText, position);
+			if(key == null){
+				return;
+			}
+
+			int search = Integer.parseInt(key);
+			int found = ExponentialSearch.exponentialSearch(sorted, search);
 			if(found == -1){
 				position = "Element " + search + " is not found.";
 			}else{

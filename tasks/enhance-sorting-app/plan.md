@@ -101,7 +101,7 @@ Nothing can be compiled or run today, so every later task's verification depends
 
 - Task 17 — Move sources to the conventional Maven layout — **done**: 29 files moved, Sorting and  Searching Algorithms deleted
 - Task 18 — Add a real package declaration — **done**: package algorithms; in all 29 files
-- Task 19 — Resolve menu option 7 (implement or remove Exponential Search)
+- Task 19 — Resolve menu option 7 (implement or remove Exponential Search) — **done**: ExponentialSearch implemented, 18 tests
 - Task 20 — Update README and AGENTS.md to match the new structure
 - Task 21 — Add test coverage for the two queue classes
 - Task 22 — Add `.gitattributes` for line endings

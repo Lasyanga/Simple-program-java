@@ -144,12 +144,6 @@ public final class Presenter {
 				title, JOptionPane.QUESTION_MESSAGE);
 	}
 
-	/** Says an option exists in the menu but does nothing yet. Option 7, pending Task 19. */
-	public static void showNotImplemented(){
-		JOptionPane.showMessageDialog(null, "Exponential Search is not implemented yet.",
-				"Message", 1);
-	}
-
 	/**
 	 * The app's visible symptom of having died. Every exception in {@link Runner#GUI()} ends here.
 	 */

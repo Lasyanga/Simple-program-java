@@ -416,21 +416,58 @@ class GuiSessionTest {
                 "the prompt must appear once per screen, then Cancel must leave");
     }
 
-    /** Option 7 is a stub. Pinning that down so nobody mistakes it for a working search. */
+    /**
+     * Option 7 performs a real exponential search, not a placeholder.
+     *
+     * <p>Task 19. The stub this replaces asserted {@code "Exponential Search is not implemented
+     * yet."} - the menu was lying. Now the label is true: pick 7, type a key, get an index, come
+     * back to the menu. The array is the same one the Jump Search test uses, so the expected
+     * index is 2 for both - a coincidence that makes it easy to assert the right number without
+     * re-deriving it.
+     */
     @Test
-    void exponentialSearchSaysItIsNotImplemented() throws Exception {
+    void exponentialSearchReturnsAnIndexAndComesBackToTheMenu() throws Exception {
+        Session s = drive(new Plan(new String[]{
+                "length of your array", "4",
+                "Element[0]", "42",
+                "Element[1]", "3",
+                "Element[2]", "17",
+                "Element[3]", "8",
+                "Length of your Array", "7",
+                "Enter the value you want to search for", "17",
+                "Element @ index: 2", "-",
+                "Enter the value you want to search for", "!",
+                "Length of your Array", "9"}));
+
+        assertRanCleanly(s);
+        assertContains(s, "Element @ index: 2",
+                "option 7 must report the index of 17 in the sorted array 3 8 17 42");
+        assertContains(s, "Sorted element:",
+                "exponential search must label the array Sorted, since it searches the sorted copy");
+        assertContains(s, "Exponential Search",
+                "the dialog must name the algorithm so the user knows which option they picked");
+        assertDidNotCrash(s);
+        assertMenuShownTwice(s);
+    }
+
+    /** The not-found path says so rather than returning a silent -1 or crashing. */
+    @Test
+    void exponentialSearchReportsAMissingElement() throws Exception {
         Session s = drive(new Plan(new String[]{
                 "length of your array", "3",
                 "Element[0]", "1",
                 "Element[1]", "2",
                 "Element[2]", "3",
                 "Length of your Array", "7",
-                "not implemented", "-",
+                "Enter the value you want to search for", "99",
+                "Element 99 is not found.", "!",
                 "Length of your Array", "9"}));
 
         assertRanCleanly(s);
-        assertContains(s, "Exponential Search is not implemented yet.",
-                "option 7 must state plainly that it does nothing");
+        assertContains(s, "Element 99 is not found.",
+                "option 7 must report a miss instead of showing a stale index");
+        assertDidNotCrash(s);
+        assertMenuShownTwice(s);
     }
 
     // ------------------------------------------------------------------

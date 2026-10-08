@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**18 of 22 code complete. 193 tests, 0 failures, 15 suites, verified by `mvn -q clean package`.
+**19 of 22 code complete. 210 tests, 0 failures, 16 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -29,7 +29,8 @@ Nothing pushed.**
 | 16 | Typos and inconsistent naming | done - **the checkpoint after 14-16** |
 | 17 | Move to conventional Maven layout | done - **double-space directory deleted** |
 | 18 | Add package declaration | done - **29 files in lgorithms package** |
-| 19-22 | Option 7, docs, queue tests, line endings | open |
+| 19 | Implement Exponential Search | done - **menu entry is honest** |
+| 20-22 | Docs, queue tests, line endings | open |
 
 **All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
 no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
@@ -1414,7 +1415,7 @@ must land together — a package declaration without the directory move does not
 
 ## Task 19: Resolve menu option 7 (implement or remove Exponential Search)
 
-**Status:** open
+**Status:** done — `ExponentialSearch` implemented, 16 unit tests + 2 GUI tests, menu entry is honest
 
 **Description:** Option 7 currently shows a dialog and does nothing — the call is commented out
 and no `ExponentialSearch` class exists. Either implement it as a pure static method with tests
@@ -1425,12 +1426,12 @@ removing it is smaller.
 **Context:** `CODE_REVIEW.md §Known defects`
 
 **Acceptance criteria:**
-- [ ] Option 7 either performs a real exponential search, or is gone from the menu
-- [ ] The README's method table matches whichever choice was made
-- [ ] No commented-out code remains in the menu switch
+- [x] Option 7 either performs a real exponential search, or is gone from the menu — **implemented**
+- [x] The README's method table matches whichever choice was made
+- [x] No commented-out code remains in the menu switch
 
 **Verification:**
-- [ ] Tests pass: `mvn -q test`
+- [x] Tests pass: `mvn -q test` — 210 tests, 0 failures, 16 suites
 - [ ] Manual check: every menu option from 1 to Exit does what its label says
 
 **Dependencies:** Task 14

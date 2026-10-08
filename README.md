@@ -14,9 +14,9 @@ the algorithm work rather than only read its final result.
 | 2 | `InsertionSort` | Insertion sort |
 | 3 | `SelectionSort` | Selection sort |
 | 4 | `MergeSort` | Merge sort |
-| 5 | `Quicksort` | Quicksort |
+| 5 | `QuickSort` | Quick sort |
 | 6 | `LinearSearch` | Linear search |
-| 7 | — | Exponential search (not implemented) |
+| 7 | `ExponentialSearch` | Exponential search |
 | 8 | `JumpSearch` | Jump search |
 | 9 | — | Exit |
 
@@ -72,8 +72,6 @@ Every class is in the default package — no `package` declaration is used anywh
   correctly; only the dialog around it is broken.
 - **Quicksort's result dialog is wrong.** It prints `1..n` instead of the sorted array. The
   sort itself is correct.
-- **Exponential search (option 7) is not implemented.** The call is commented out and no
-  `ExponentialSearch` class exists.
 
 ## Credits
 
