@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**20 of 22 code complete. 210 tests, 0 failures, 16 suites, verified by `mvn -q clean package`.
+**21 of 22 code complete. 226 tests, 0 failures, 17 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -31,7 +31,8 @@ Nothing pushed.**
 | 18 | Add package declaration | done - **29 files in lgorithms package** |
 | 19 | Implement Exponential Search | done - **menu entry is honest** |
 | 20 | Update README + AGENTS + CODE_REVIEW | done - **all three rewritten, counts measured** |
-| 21-22 | Queue tests, line endings | open |
+| 21 | Queue test coverage + decoupling | done - **14 new tests, console byte-identical** |
+| 22 | .gitattributes line endings | open |
 
 **All seven algorithm/search classes are now pure namespaces.** Final, uninstantiable, static-only,
 no fields. Every `JOptionPane` call lives in one file, `Presenter.java`, and `ArchitectureTest`
@@ -1502,7 +1503,7 @@ now says up front that it is history, not a live list of open work.
 
 ## Task 21: Add test coverage for the two queue classes
 
-**Status:** open
+**Status:** done — decoupled + `CircularQueueTest` (14 tests), console output byte-identical
 
 **Description:** `QueueJava` and `CircularQueue` are unrelated to the sorting app and have no
 tests, because both are welded to `Scanner` and their own `main`. Decouple the data structure
@@ -1514,26 +1515,61 @@ should lock down.
 **Context:** `CODE_REVIEW.md §Architecture — the one structural problem`
 
 **Acceptance criteria:**
-- [ ] Both queue classes separate the data structure from the `Scanner` loop
+- [x] Both queue classes separate the data structure from the `Scanner` loop — **`Scanner` was
+      already confined to `main`**; what was coupled was `System.out` inside `enqueue`/`dequeue`/
+      `display`, now moved to `main`. Structure methods have 0 `System.out` calls (the one grep
+      hit is a `{@code System.out}` in a javadoc sentence).
 - [x] ~~`QueueJavaTest` covers enqueue, dequeue, peek, overflow, and underflow~~ **already
       delivered by Task 4** — 7 tests, including fill-and-drain drift and both refused-bound
-      paths. Do not rewrite them; only extend if the decoupling changes the API.
-- [ ] `CircularQueueTest` covers wraparound from last slot to first, and the single-element reset case
-- [ ] `CircularQueue`'s data structure is verified, **not just its console loop**. Its bounds
+      paths. Do not rewrite them; only extend if the decoupling changes the API. **→ extended by
+      2 tests**, which is permitted because the decoupling did change the API (`enqueue` void →
+      `boolean`, `dequeue` void → `int`); the original 7 are untouched.
+- [x] `CircularQueueTest` covers wraparound from last slot to first, and the single-element reset case
+- [x] `CircularQueue`'s data structure is verified, **not just its console loop**. Its bounds
       guards are already correct (`if/else`, confirmed by execution) — the point of the tests is
       to lock that in, not to fix a known bug.
 
 **Verification:**
-- [ ] Tests pass: `mvn -q test -Dtest=CircularQueueTest`
-- [ ] Tests pass: `mvn -q test`
-- [ ] Manual check: both console entrypoints still behave identically from the terminal
+- [x] Tests pass: `mvn -q test -Dtest=CircularQueueTest` — 14 tests, 0 failures
+- [x] Tests pass: `mvn -q test` → `mvn -q clean package` — 226 tests, 0 failures, 17 suites
+- [x] Manual check: both console entrypoints still behave identically from the terminal —
+      **proven by byte-diff, not by eye.** Three scripted transcripts (42, 44 and 123 lines)
+      captured before the change and compared after: all three byte-identical.
 
 **Dependencies:** Task 15
 
+**The brief's premise was half wrong, verified before acting:**
+
+It said both classes are "welded to `Scanner` and their own `main`". `grep Scanner` shows
+`Scanner` appears **only inside `main`** in both files — the structure methods never touched it.
+What *was* coupled was `System.out`: `enqueue` printed "Inserted 5" as a side effect of storing 5,
+the same smell as an algorithm opening its own dialog. That is what was moved, so criterion 1 is
+satisfied on the real coupling rather than the assumed one.
+
+**Two adjacent defects found and deliberately NOT fixed** (out of scope — reported, not silently
+repaired):
+
+1. **`QueueJava` loses its state on every menu visit.** `new QueueJava(len)` sits *inside* the
+   outer loop (line 78), so each return to the menu builds a fresh empty queue. A user can never
+   successfully dequeue or peek from the console — those paths only ever run against an empty
+   queue, which is why the baseline transcript shows "Underflow" where a drain was expected.
+   `CircularQueue` constructs outside the loop and does not have this. The structure itself is
+   sound; only the demo discards state. Noted in `QueueJava`'s javadoc.
+2. **`QueueJava`'s Peek option shows nothing.** `case 3` calls `q.peek();` and discards the
+   result, so the menu offers Peek and prints no value. Left alone because "both console
+   entrypoints behave identically" requires it; printing the value would be a behaviour change
+   this task did not ask for.
+
+**The safety check was a byte-diff, not a judgement call.** Because "behaves identically" was a
+criterion, three scripted stdin transcripts were captured *before* touching anything (42 lines
+QueueJava, 44 CircularQueue, 123 CircularQueue-at-capacity, exercising overflow/underflow/display/
+empty), then re-captured after and compared. All three byte-identical.
+
 **Files likely touched:**
-- `Sorting and  Searching Algorithms/src/QueueJava.java`
-- `Sorting and  Searching Algorithms/src/CircularQueue.java`
-- new `CircularQueueTest` (the `QueueJavaTest` already exists)
+- `src/main/java/algorithms/QueueJava.java`
+- `src/main/java/algorithms/CircularQueue.java`
+- new `src/test/java/algorithms/CircularQueueTest.java`
+- `src/test/java/algorithms/QueueJavaTest.java` (2 added tests, javadoc corrected)
 
 **Estimated scope:** M
 

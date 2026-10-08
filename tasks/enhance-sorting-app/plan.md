@@ -103,7 +103,7 @@ Nothing can be compiled or run today, so every later task's verification depends
 - Task 18 — Add a real package declaration — **done**: package algorithms; in all 29 files
 - Task 19 — Resolve menu option 7 (implement or remove Exponential Search) — **done**: ExponentialSearch implemented, 18 tests
 - Task 20 — Update README and AGENTS.md to match the new structure — **done**: README + AGENTS rewritten, CODE_REVIEW marked resolved
-- Task 21 — Add test coverage for the two queue classes
+- Task 21 — Add test coverage for the two queue classes — **done**: decoupled, CircularQueueTest 14 tests
 - Task 22 — Add `.gitattributes` for line endings
 
 ## Risks and Mitigations

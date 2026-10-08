@@ -17,8 +17,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * queue then reported neither empty nor full, permanently.
  *
  * <p>These tests drive the class directly rather than through {@code main}, so the console
- * menu and its {@code Scanner} loop are out of scope; see Task 21 for decoupling that loop.
- * {@code dequeue()} returns void, so removed values are checked via {@code peek()}.
+ * menu and its {@code Scanner} loop are out of scope; {@code Task 21} then moved the printing
+ * out of the structure and added {@code CircularQueueTest} for the ring buffer.
+ * {@code dequeue()} now returns the removed element (-1 when empty), so the successful removal
+ * path is checked directly rather than through {@code peek()}.
  */
 class QueueJavaTest {
 
@@ -109,5 +111,46 @@ class QueueJavaTest {
             q.dequeue();
             assertEquals(0, q.size(), "round " + round);
         }
+    }
+
+    // ------------------------------------------------------------------
+    // Added in Task 21: the decoupling gave these two methods return values,
+    // so their outcomes can be asserted directly instead of inferred from size().
+    // ------------------------------------------------------------------
+
+    /**
+     * {@code enqueue} now reports whether it stored the item.
+     *
+     * <p>The console demo cannot reach this refusal: {@code main} rebuilds the queue on every menu
+     * visit, so a user never has a full queue to push against. The structure can, which is the
+     * point of testing it separately from the loop that drives it.
+     */
+    @Test
+    void enqueueReportsWhetherItStoredTheItem() {
+        QueueJava q = new QueueJava(1);
+        assertTrue(q.enqueue(5), "the first insert into an empty queue must report success");
+        assertFalse(q.enqueue(6), "an insert into a full queue must report refusal");
+        assertEquals(1, q.size());
+        assertEquals(5, q.peek());
+    }
+
+    /**
+     * {@code dequeue} now returns what it removed, or -1 when empty.
+     *
+     * <p>Again unreachable through the console for the same reason, and the path the original
+     * code's "Deleting N" message was supposed to show. Its removal from the structure is what
+     * makes this assertable.
+     */
+    @Test
+    void dequeueReturnsTheRemovedElementAndMinusOneWhenEmpty() {
+        QueueJava q = new QueueJava(3);
+        assertEquals(-1, q.dequeue(), "-1 is the empty-queue sentinel");
+
+        q.enqueue(10);
+        q.enqueue(20);
+        assertEquals(10, q.dequeue(), "FIFO order: the first in must be the first out");
+        assertEquals(20, q.dequeue());
+        assertEquals(-1, q.dequeue(), "and it must go back to reporting empty");
+        assertEquals(0, q.size());
     }
 }
