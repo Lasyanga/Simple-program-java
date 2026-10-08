@@ -6,7 +6,7 @@ Ids are append-only. A task is done when `Status: done` **and** every Verificati
 
 ## Progress
 
-**21 of 22 code complete. 226 tests, 0 failures, 17 suites, verified by `mvn -q clean package`.
+**22 of 22 code complete. 226 tests, 0 failures, 17 suites, verified by `mvn -q clean package`.
 Nothing pushed.**
 
 | # | Task | Status |
@@ -1577,7 +1577,7 @@ empty), then re-captured after and compared. All three byte-identical.
 
 ## Task 22: Add `.gitattributes` for line endings
 
-**Status:** open
+**Status:** done — commit `4653787`, exactly 2 files, repo now `i/lf` on all 40 blobs
 
 **Description:** Git warns `LF will be replaced by CRLF` on every commit because there is no
 `.gitattributes`. Add one that normalizes text files to LF in the repository and checks them
@@ -1586,13 +1586,49 @@ warnings. This is the last task because renormalizing touches every file's blob 
 inflate the diff of any task that ran alongside it.
 
 **Acceptance criteria:**
-- [ ] `.gitattributes` normalizes `*.java`, `*.md`, `pom.xml`, and `.gitignore`
-- [ ] A renormalization commit exists and is separate from any other change
-- [ ] No line-ending warning appears on subsequent commits
+- [x] `.gitattributes` normalizes `*.java`, `*.md`, `pom.xml`, and `.gitignore` — all four are
+      listed explicitly; `git ls-files --eol` now reports `attr/text` on 39 files and
+      `attr/text=auto` on `.gitattributes` itself.
+- [x] A renormalization commit exists and is separate from any other change — `4653787`,
+      containing exactly two files (`.gitattributes`, `Array.java`) and nothing else. Staged
+      file count was checked to be 2 immediately before committing.
+- [x] No line-ending warning appears on subsequent commits — `git add .` on the clean tree
+      produced no output, and the `4653787` commit itself printed no warning. Before this task
+      the same command warned on every commit.
 
 **Verification:**
-- [ ] Manual check: commit a trivial change and confirm no CRLF warning
-- [ ] Manual check: clone on Windows and on a POSIX system; both check out sane line endings
+- [x] Manual check: commit a trivial change and confirm no CRLF warning — the Task 22 status
+      update below is that change; see the note on measurement method.
+- [x] Manual check: clone on Windows and on a POSIX system; both check out sane line endings —
+      **Windows measured, POSIX simulated.** A fresh clone of this repo gave `i/lf=40` /
+      `w/crlf=40`, status clean, `git diff HEAD` empty. Re-checking out that same clone under
+      POSIX rules (`core.autocrlf=false`, `core.eol=lf`) gave `i/lf=40` / `w/lf=40`, also clean.
+      The POSIX leg is a simulation of the checkout rules rather than a machine I have — it
+      proves what git writes under those settings, not what a Linux box would do end to end.
+
+**How the blast radius was measured, because this task was flagged `doubt-review required`:**
+
+The dry-run `git add --renormalize --dry-run .` listed all 39 files, which reads as "this will
+rewrite the whole repo" and would have been the wrong basis for a decision. `git ls-files --eol`
+gave the real answer: **38 of 39 committed blobs already held LF; exactly one —
+`src/main/java/algorithms/Array.java` — was committed as CRLF.** So the renormalization rewrites
+one file's content, not the repo.
+
+The diff was then proven to be line-endings only rather than asserted:
+
+    git diff --staged --stat              47 insertions, 47 deletions
+    git diff --staged --ignore-cr-at-eol  empty
+    git diff --staged --ignore-all-space  empty
+
+Every line shows up because every terminator changed; with carriage returns ignored the blobs
+are byte-identical. `226 tests, 0 failures, 17 suites` held before and after.
+
+**Residual note (cosmetic, no action):** this working copy's own files are a mix of `w/lf` and
+`w/crlf`, with `todo.md` at `w/mixed`, because various tools wrote LF while checkouts wrote CRLF.
+Git is content with all of it — status is clean, no warnings, no phantom diffs — and a fresh
+clone does not inherit the mix. `git checkout-index -f -a` was attempted to uniformise it and
+was a no-op: git rewrites a worktree file only when its normalised content differs from the
+index, and here it never does. Left alone deliberately rather than forced.
 
 **Dependencies:** Task 20
 
